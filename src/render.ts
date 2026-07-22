@@ -32,19 +32,26 @@ export function renderText(changes: Change[], opts: RenderOptions = {}): string 
   let removed = 0;
   let changed = 0;
 
+  // Pad the path column so values line up in a clean second column.
+  const width = Math.min(
+    40,
+    changes.reduce((m, ch) => Math.max(m, formatPath(ch.path).length), 0),
+  );
+  const pad = (s: string) => (s.length >= width ? s : s + " ".repeat(width - s.length));
+
   for (const ch of changes) {
     const p = formatPath(ch.path);
     if (ch.kind === "add") {
       added++;
-      lines.push(`${c.green("+")} ${c.green(p)}  ${c.dim("=")} ${c.green(preview(ch.newValue))}`);
+      lines.push(`${c.green("+")} ${c.green(pad(p))}  ${c.dim("=")} ${c.green(preview(ch.newValue))}`);
     } else if (ch.kind === "remove") {
       removed++;
-      lines.push(`${c.red("-")} ${c.red(p)}  ${c.dim("=")} ${c.red(preview(ch.oldValue))}`);
+      lines.push(`${c.red("-")} ${c.red(pad(p))}  ${c.dim("=")} ${c.red(preview(ch.oldValue))}`);
     } else {
       changed++;
       const tag = ch.typeChanged ? c.dim(" (type)") : "";
       lines.push(
-        `${c.yellow("~")} ${c.yellow(p)}${tag}  ${c.red(preview(ch.oldValue))} ${c.dim("=>")} ${c.green(
+        `${c.yellow("~")} ${c.yellow(pad(p))}${tag}  ${c.red(preview(ch.oldValue))} ${c.dim("=>")} ${c.green(
           preview(ch.newValue),
         )}`,
       );
