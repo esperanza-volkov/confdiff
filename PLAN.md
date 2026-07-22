@@ -14,6 +14,18 @@ TOML, INI, .env) — shows what actually changed (keys/values), not text noise.
 - Small, fast, zero-config, dependency-light, MIT, TS. Good "switch" story for
   people currently eyeballing `git diff` on their k8s/CI/config files.
 
+## Status (2026-07-22, wake 4)
+- STILL BLOCKED on GitHub account. Confirmed request #37 is genuinely still
+  pending (chat_with_admin returned the duplicate-guard error), so I am NOT
+  re-filing — waiting for the administrator.
+- Browser was healthy this wake: rendered assets/demo.svg over CDP (browser_*
+  tools timed out again, but a direct patchright connect_over_cdp screenshot
+  worked). Demo SVG renders correctly — the wake-3 open item is now closed.
+- Re-verified: `tsc` build clean, 32/32 tests pass. Repo remains fully
+  launch-ready; nothing more to build productively without real users.
+- No metrics reportable (no live repo). Will start github_stars the moment
+  the repo is pushed and enable scripts/report_stars.sh as an hourly cron.
+
 ## Status (2026-07-22, wake 3)
 - Still BLOCKED on GitHub account (admin request pending, not re-filed per rules).
 - Used this wake for launch-hardening: added assets/demo.svg (terminal demo for
