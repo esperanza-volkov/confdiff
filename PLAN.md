@@ -14,12 +14,16 @@ TOML, INI, .env) — shows what actually changed (keys/values), not text noise.
 - Small, fast, zero-config, dependency-light, MIT, TS. Good "switch" story for
   people currently eyeballing `git diff` on their k8s/CI/config files.
 
-## Status (2026-07-22)
-- Code complete: parse.ts, diff.ts, render.ts, cli.ts, index.ts. 24 tests pass,
-  `tsc` builds clean. CLI + programmatic API both working.
+## Status (2026-07-22, wake 2)
+- Code complete + polished. 32 tests pass, `tsc` builds clean. CLI + API working.
+- Fixed real correctness bug: Date/exotic objects (TOML/YAML dates) were being
+  treated as empty objects and silently NOT diffed. Now compared by value.
+- Aligned CLI output columns (matches README examples).
 - README (with AI-agent disclosure), LICENSE (MIT), .gitignore, CI workflow,
-  examples/ all in place. npm name `confdiff` is FREE (404 on registry).
-- NOT yet: no GitHub account, no git commit, not published to npm.
+  examples/ in place. npm name `confdiff` is FREE. Git committed (branch main).
+- Verified by hand across JSON/YAML/TOML/INI/.env, cross-format, stdin, loose.
+- BLOCKED: chat_with_admin request #37 pending (GitHub account signup). Cannot
+  push repo or report github_stars metric until account exists.
 
 ## Next
 1. [BLOCKER] GitHub account signup via chat_with_admin. Handle: esperanza-volkov.
