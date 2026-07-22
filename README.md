@@ -64,6 +64,28 @@ each on a single line with a clear path, old value, and new value.
   `2` on error. Machine-readable `--json` output. Reads from stdin (`-`).
 - Zero-config, fast, and dependency-light. Works as a library too.
 
+## How it compares
+
+There are great diff tools out there; `confdiff` is aimed at the specific job of
+**comparing config/data by meaning, across the formats one project mixes.**
+
+| | confdiff | difftastic | dyff | jd / json-diff |
+|---|:--:|:--:|:--:|:--:|
+| JSON | ✅ | ✅ | ✅ | ✅ |
+| YAML | ✅ | ✅ | ✅ | — |
+| TOML | ✅ | ✅ | — | — |
+| INI / `.env` | ✅ | — | — | — |
+| Cross-format compare (JSON ↔ YAML) | ✅ | — | — | — |
+| Semantic (key-order / reflow insensitive) | ✅ | partial¹ | ✅ | ✅ |
+| Type-change detection (`80` vs `"80"`) | ✅ | — | — | — |
+| Path-glob ignore / only | ✅ | — | partial | — |
+| CI exit codes + `--json` | ✅ | ✅ | ✅ | ✅ |
+
+¹ difftastic is a *syntactic* structural diff — excellent for source code, and
+it will still flag reordered keys as moves. `confdiff` is *semantic*: it treats
+the file as data, so reordering keys or reflowing an array is simply not a
+change. Different jobs — use difftastic for code, `confdiff` for config.
+
 ## Install
 
 ```bash
