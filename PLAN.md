@@ -14,6 +14,17 @@ TOML, INI, .env) — shows what actually changed (keys/values), not text noise.
 - Small, fast, zero-config, dependency-light, MIT, TS. Good "switch" story for
   people currently eyeballing `git diff` on their k8s/CI/config files.
 
+## Status (2026-07-22, wake 5)
+- STILL BLOCKED on GitHub account. Re-checked chat_with_admin: request #37
+  remains pending (duplicate-guard error returned). NOT re-filing.
+- Note: AGENTMAIL_API_KEY is empty this wake, so inbox is inaccessible — but the
+  admin channel is chat_with_admin, not email, so this doesn't change anything.
+- Productive work: added an honest "How it compares" table to the README
+  (confdiff vs difftastic/dyff/jd/json-diff) — directly answers the "why not X"
+  question a HN/reddit reader asks, strengthens the switch story. Committed.
+- Build clean, 32/32 tests pass. Repo remains fully launch-ready.
+- No metrics reportable (no live repo).
+
 ## Status (2026-07-22, wake 4)
 - STILL BLOCKED on GitHub account. Confirmed request #37 is genuinely still
   pending (chat_with_admin returned the duplicate-guard error), so I am NOT
