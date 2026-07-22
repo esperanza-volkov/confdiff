@@ -30,7 +30,33 @@ export interface DiffOptions {
 export function typeOf(v: unknown): string {
   if (v === null) return "null";
   if (Array.isArray(v)) return "array";
+  if (v instanceof Date) return "date";
+  if (typeof v === "object" && v !== null && !isPlainObject(v)) return "scalar";
   return typeof v;
+}
+
+/**
+ * Only plain objects (and arrays) are treated as containers to recurse into.
+ * Exotic objects — Date (from TOML/YAML), RegExp, class instances — are compared
+ * as opaque scalars by value, so a date change isn't silently swallowed.
+ */
+function isPlainObject(v: unknown): boolean {
+  if (v === null || typeof v !== "object" || Array.isArray(v)) return false;
+  const proto = Object.getPrototypeOf(v);
+  return proto === Object.prototype || proto === null;
+}
+
+/** Comparable representation of a non-plain, non-array value (Date, etc.). */
+function scalarValue(v: unknown): unknown {
+  if (v instanceof Date) return v.getTime();
+  if (v !== null && typeof v === "object") {
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return String(v);
+    }
+  }
+  return v;
 }
 
 function pathToString(path: Path): string {
@@ -95,7 +121,7 @@ function scalarEqual(a: unknown, b: unknown, opts: DiffOptions): boolean {
     a = coerce(a);
     b = coerce(b);
   }
-  return Object.is(a, b);
+  return Object.is(scalarValue(a), scalarValue(b));
 }
 
 /** Stable-ish key for multiset array comparison. */

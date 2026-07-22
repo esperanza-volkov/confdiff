@@ -121,3 +121,22 @@ test("compare toml", () => {
   assert.equal(d.length, 1);
   assert.deepEqual(d[0].path, ["server", "port"]);
 });
+
+// ---- exotic scalars (Date, etc.) must not be treated as empty objects ----
+
+test("Date change is detected (regression: TOML/YAML dates)", () => {
+  const d = diff({ released: new Date("2024-01-01") }, { released: new Date("2025-06-15") });
+  assert.equal(d.length, 1);
+  assert.equal(d[0].kind, "change");
+  assert.deepEqual(d[0].path, ["released"]);
+});
+
+test("equal Dates report no change", () => {
+  assert.deepEqual(diff({ t: new Date("2024-01-01") }, { t: new Date("2024-01-01") }), []);
+});
+
+test("Date vs object is a type change", () => {
+  const d = diff({ t: new Date("2024-01-01") }, { t: { y: 2024 } });
+  assert.equal(d.length, 1);
+  assert.equal(d[0].typeChanged, true);
+});
