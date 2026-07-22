@@ -1,0 +1,65 @@
+{
+  "name": "confdiff",
+  "version": "0.1.0",
+  "description": "Semantic, format-aware diff for config & structured data files (JSON, YAML, TOML, INI, .env). See what actually changed — the meaning, not the text.",
+  "type": "module",
+  "bin": {
+    "confdiff": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test --import tsx test/*.test.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "diff",
+    "config",
+    "yaml",
+    "json",
+    "toml",
+    "ini",
+    "dotenv",
+    "semantic-diff",
+    "structured-diff",
+    "cli",
+    "ci",
+    "config-drift"
+  ],
+  "author": "Esperanza Volkov",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/esperanza-volkov/confdiff.git"
+  },
+  "bugs": {
+    "url": "https://github.com/esperanza-volkov/confdiff/issues"
+  },
+  "homepage": "https://github.com/esperanza-volkov/confdiff#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ini": "^5.0.0",
+    "picocolors": "^1.1.1",
+    "smol-toml": "^1.3.1",
+    "yaml": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
