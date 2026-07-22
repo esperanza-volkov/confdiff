@@ -3,3 +3,8 @@ dist/
 *.log
 .DS_Store
 .env
+
+# internal working docs (not published)
+PLAN.md
+LAUNCH.md
+scripts/
