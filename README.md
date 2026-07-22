@@ -3,6 +3,10 @@
 **Semantic, format-aware diff for config & structured-data files.**
 See what *actually* changed — the meaning, not the text.
 
+<p align="center">
+  <img src="./assets/demo.svg" alt="confdiff comparing two YAML files and reporting only the semantic changes" width="720">
+</p>
+
 ```console
 $ confdiff old.yaml new.yaml
 ~ env.LOG_LEVEL  "info" => "debug"

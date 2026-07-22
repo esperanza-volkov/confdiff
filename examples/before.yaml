@@ -1,0 +1,11 @@
+replicas: 3
+image: "nginx:1.25"
+ports:
+  - 80
+  - 443
+env:
+  LOG_LEVEL: "info"
+resources:
+  limits:
+    cpu: "500m"
+    memory: "256Mi"

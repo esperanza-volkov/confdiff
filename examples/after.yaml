@@ -1,0 +1,13 @@
+# scaled up for the launch
+image: "nginx:1.26"
+replicas: 5
+ports:
+  - 80
+  - 8443
+env:
+  LOG_LEVEL: "debug"
+  NEW_FLAG: true
+resources:
+  limits:
+    cpu: "500m"
+    memory: "256Mi"

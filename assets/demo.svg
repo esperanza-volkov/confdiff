@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="248" viewBox="0 0 720 248" font-family='ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace' font-size="14">
+<rect width="720" height="248" rx="10" fill="#0d1117"/>
+<rect width="720" height="34" rx="10" fill="#161b22"/>
+<rect y="24" width="720" height="10" fill="#161b22"/>
+<circle cx="20" cy="17" r="6" fill="#f66151"/>
+<circle cx="40" cy="17" r="6" fill="#e9ad0c"/>
+<circle cx="60" cy="17" r="6" fill="#33d17a"/>
+<text x="360.0" y="22" fill="#7d8590" text-anchor="middle" font-size="12">confdiff — semantic config diff</text>
+<text x="20.0" y="56" fill="#58a6ff" xml:space="preserve">$ </text>
+<text x="36.8" y="56" fill="#c9d1d9" xml:space="preserve">confdiff old.yaml new.yaml</text>
+<text x="20.0" y="78" fill="#e9ad0c" xml:space="preserve">~ </text>
+<text x="36.8" y="78" fill="#e9ad0c" xml:space="preserve">env.LOG_LEVEL  </text>
+<text x="162.8" y="78" fill="#f66151" xml:space="preserve">"info"</text>
+<text x="213.2" y="78" fill="#7d8590" xml:space="preserve"> =&gt; </text>
+<text x="246.8" y="78" fill="#33d17a" xml:space="preserve">"debug"</text>
+<text x="20.0" y="100" fill="#33d17a" xml:space="preserve">+ </text>
+<text x="36.8" y="100" fill="#33d17a" xml:space="preserve">env.NEW_FLAG   </text>
+<text x="162.8" y="100" fill="#7d8590" xml:space="preserve">= </text>
+<text x="179.6" y="100" fill="#33d17a" xml:space="preserve">true</text>
+<text x="20.0" y="122" fill="#e9ad0c" xml:space="preserve">~ </text>
+<text x="36.8" y="122" fill="#e9ad0c" xml:space="preserve">image          </text>
+<text x="162.8" y="122" fill="#f66151" xml:space="preserve">"nginx:1.25"</text>
+<text x="263.6" y="122" fill="#7d8590" xml:space="preserve"> =&gt; </text>
+<text x="297.2" y="122" fill="#33d17a" xml:space="preserve">"nginx:1.26"</text>
+<text x="20.0" y="144" fill="#e9ad0c" xml:space="preserve">~ </text>
+<text x="36.8" y="144" fill="#e9ad0c" xml:space="preserve">ports[1]       </text>
+<text x="162.8" y="144" fill="#f66151" xml:space="preserve">443</text>
+<text x="188.0" y="144" fill="#7d8590" xml:space="preserve"> =&gt; </text>
+<text x="221.6" y="144" fill="#33d17a" xml:space="preserve">8443</text>
+<text x="20.0" y="166" fill="#e9ad0c" xml:space="preserve">~ </text>
+<text x="36.8" y="166" fill="#e9ad0c" xml:space="preserve">replicas       </text>
+<text x="162.8" y="166" fill="#f66151" xml:space="preserve">3</text>
+<text x="171.2" y="166" fill="#7d8590" xml:space="preserve"> =&gt; </text>
+<text x="204.8" y="166" fill="#33d17a" xml:space="preserve">5</text>
+<text x="20.0" y="210" fill="#c9d1d9" xml:space="preserve">5 changes: </text>
+<text x="112.4" y="210" fill="#33d17a" xml:space="preserve">1 added</text>
+<text x="171.2" y="210" fill="#c9d1d9" xml:space="preserve">, </text>
+<text x="188.0" y="210" fill="#e9ad0c" xml:space="preserve">4 changed</text>
+</svg>
