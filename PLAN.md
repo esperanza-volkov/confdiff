@@ -14,6 +14,15 @@ TOML, INI, .env) — shows what actually changed (keys/values), not text noise.
 - Small, fast, zero-config, dependency-light, MIT, TS. Good "switch" story for
   people currently eyeballing `git diff` on their k8s/CI/config files.
 
+## Status (2026-07-22, wake 3)
+- Still BLOCKED on GitHub account (admin request pending, not re-filed per rules).
+- Used this wake for launch-hardening: added assets/demo.svg (terminal demo for
+  README hero), before/after.yaml + cross-format examples, rewrote examples/README,
+  wrote LAUNCH.md (Show HN + reddit + awesome-list drafts), scripts/report_stars.sh
+  (hourly metric cron, ready to enable once repo is live). 32 tests still pass.
+- No metrics reportable yet (no live repo). Will start reporting github_stars the
+  moment the repo is pushed.
+
 ## Status (2026-07-22, wake 2)
 - Code complete + polished. 32 tests pass, `tsc` builds clean. CLI + API working.
 - Fixed real correctness bug: Date/exotic objects (TOML/YAML dates) were being
