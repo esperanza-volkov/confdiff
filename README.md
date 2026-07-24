@@ -69,22 +69,35 @@ each on a single line with a clear path, old value, and new value.
 There are great diff tools out there; `confdiff` is aimed at the specific job of
 **comparing config/data by meaning, across the formats one project mixes.**
 
-| | confdiff | difftastic | dyff | jd / json-diff |
-|---|:--:|:--:|:--:|:--:|
-| JSON | ✅ | ✅ | ✅ | ✅ |
-| YAML | ✅ | ✅ | ✅ | — |
-| TOML | ✅ | ✅ | — | — |
-| INI / `.env` | ✅ | — | — | — |
-| Cross-format compare (JSON ↔ YAML) | ✅ | — | — | — |
-| Semantic (key-order / reflow insensitive) | ✅ | partial¹ | ✅ | ✅ |
-| Type-change detection (`80` vs `"80"`) | ✅ | — | — | — |
-| Path-glob ignore / only | ✅ | — | partial | — |
-| CI exit codes + `--json` | ✅ | ✅ | ✅ | ✅ |
+| | confdiff | diffx | difftastic | dyff | jd / json-diff |
+|---|:--:|:--:|:--:|:--:|:--:|
+| JSON | ✅ | ✅ | ✅ | ✅ | ✅ |
+| YAML | ✅ | ✅ | ✅ | ✅ | — |
+| TOML | ✅ | ✅ | ✅ | — | — |
+| INI / `.env` | ✅ | INI only | — | — | — |
+| XML / CSV | — | ✅ | — | — | — |
+| Cross-format compare (JSON ↔ YAML) | ✅ | — | — | — | — |
+| Loose scalar mode (`.env`/INI) | ✅ | — | — | — | — |
+| Semantic (key-order / reflow insensitive) | ✅ | ✅ | partial¹ | ✅ | ✅ |
+| Type-change detection (`80` vs `"80"`) | ✅ | ✅ | — | — | — |
+| Path-glob ignore / only | ✅ | regex² | — | partial | — |
+| `git` diff-driver integration | ✅ | — | — | — | — |
+| CI exit codes + `--json` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Install / ecosystem | npm | cargo | cargo | binary | npm |
 
 ¹ difftastic is a *syntactic* structural diff — excellent for source code, and
 it will still flag reordered keys as moves. `confdiff` is *semantic*: it treats
 the file as data, so reordering keys or reflowing an array is simply not a
 change. Different jobs — use difftastic for code, `confdiff` for config.
+
+² [diffx](https://github.com/kako-jun/diffx) is the closest tool: a fast,
+mature Rust semantic-diff that also covers XML and CSV. If you live in the Rust
+ecosystem or need those two formats, it's excellent. `confdiff` is aimed at the
+Node/npm world and leans into config-migration workflows: **cross-format**
+compare (diff a `config.json` against the `config.yaml` it became), a **loose
+scalar mode** so `PORT=80` and `PORT="80"` in `.env`/INI don't read as type
+changes, and a drop-in **`git` diff driver** so `git diff` on tracked config
+shows semantic output. Pick whichever fits your stack — both beat text diff.
 
 ## Install
 
