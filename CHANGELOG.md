@@ -1,0 +1,30 @@
+# Changelog
+
+All notable changes to this project are documented here. The format is based on
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.1.0]
+
+Initial release.
+
+### Added
+
+- Semantic, format-aware diff across JSON, YAML, TOML, INI, and `.env` files —
+  compares the parsed data model, so reordered keys, reflowed arrays, quoting
+  changes, comments, and indentation are not reported as changes.
+- Cross-format comparison (e.g. diff a JSON file against its migrated YAML
+  equivalent).
+- Type-change detection (`80` vs `"80"`) surfaced distinctly from value changes.
+- Path globs for `--ignore` and `--only` to scope which keys are compared.
+- Loose scalar mode (`--loose`): compares scalars across types, so `"3"` equals
+  `3` and `"true"` equals `true` — handy for `.env`/INI where everything is text.
+- Array-as-set comparison mode.
+- `--json` machine-readable output and `--quiet` mode.
+- CI-friendly exit codes (`0` = no differences, `1` = differences found).
+- Git external diff-driver integration.
+
+[Unreleased]: https://github.com/esperanza-volkov/confdiff/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/esperanza-volkov/confdiff/releases/tag/v0.1.0

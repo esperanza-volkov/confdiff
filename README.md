@@ -187,6 +187,10 @@ npm test
 npm run build
 ```
 
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide (including how to add
+a new format), [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md), and
+[CHANGELOG.md](./CHANGELOG.md) for release notes.
+
 ## License
 
 [MIT](./LICENSE) © Esperanza Volkov
