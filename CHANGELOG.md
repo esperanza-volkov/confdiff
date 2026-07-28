@@ -15,6 +15,11 @@ Initial release.
 - Semantic, format-aware diff across JSON, YAML, TOML, INI, and `.env` files —
   compares the parsed data model, so reordered keys, reflowed arrays, quoting
   changes, comments, and indentation are not reported as changes.
+- CSV/TSV support: files are parsed into rows keyed by the header and compared
+  by position by default; delimiter is auto-detected (`,` `\t` `;` `|`) and
+  RFC-4180 quoting (quoted delimiters, embedded newlines, `""` escapes) is
+  handled. `--csv-key <column>` matches rows by a key column instead of by
+  position, so reordered or inserted rows don't produce spurious changes.
 - Cross-format comparison (e.g. diff a JSON file against its migrated YAML
   equivalent).
 - Type-change detection (`80` vs `"80"`) surfaced distinctly from value changes.

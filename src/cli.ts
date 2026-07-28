@@ -4,10 +4,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, basename } from "node:path";
 import pc from "picocolors";
 import { diff } from "./diff.js";
-import { parseContent, detectFormat, type Format } from "./parse.js";
+import { parseContent, keyRowsByColumn, detectFormat, type Format } from "./parse.js";
 import { renderText, renderJson } from "./render.js";
 
-const FORMATS: Format[] = ["json", "yaml", "toml", "ini", "env"];
+const FORMATS: Format[] = ["json", "yaml", "toml", "ini", "env", "csv"];
 
 interface Args {
   files: string[];
@@ -18,6 +18,7 @@ interface Args {
   only: string[];
   arraySet: boolean;
   loose: boolean;
+  csvKey?: string;
   json: boolean;
   quiet: boolean;
   color?: boolean;
@@ -42,6 +43,7 @@ ${pc.bold("USAGE")}
   confdiff <a> <b> [options]
   confdiff old.yaml new.yaml
   confdiff config.json config.yaml        # cross-format compare
+  confdiff old.csv new.csv --csv-key id   # match CSV rows by a key column
   cat a.env | confdiff - b.env --format env
 
 ${pc.bold("OUTPUT")}
@@ -56,6 +58,7 @@ ${pc.bold("OPTIONS")}
                          e.g. -i "metadata.*" -i "**.timestamp"
   -o, --only <glob>      Only compare paths matching glob (repeatable)
   -l, --loose            Loose scalars: "3"==3, "true"==true (great for .env/.ini)
+      --csv-key <col>    For CSV/TSV: match rows by this column, not by position
       --array-set        Compare arrays as unordered sets (ignore element order)
       --json             Machine-readable JSON output (for CI / scripts)
   -q, --quiet            No output; communicate via exit code only
@@ -140,6 +143,9 @@ function parseArgs(argv: string[]): Args {
       case "--loose":
         a.loose = true;
         break;
+      case "--csv-key":
+        a.csvKey = next();
+        break;
       case "--array-set":
         a.arraySet = true;
         break;
@@ -214,6 +220,15 @@ export function main(argv = process.argv.slice(2)): void {
     valB = parseContent(rawB, fmtB);
   } catch (e) {
     fail(`failed to parse "${fileB}" as ${fmtB}: ${(e as Error).message}`);
+  }
+
+  if (args.csvKey) {
+    try {
+      if (fmtA === "csv") valA = keyRowsByColumn(valA as Record<string, string>[], args.csvKey);
+      if (fmtB === "csv") valB = keyRowsByColumn(valB as Record<string, string>[], args.csvKey);
+    } catch (e) {
+      fail((e as Error).message);
+    }
   }
 
   const changes = diff(valA, valB, {

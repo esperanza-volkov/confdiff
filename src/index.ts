@@ -2,6 +2,8 @@ export { diff, type Change, type ChangeKind, type DiffOptions, type Path, format
 export {
   parseContent,
   parseEnv,
+  parseCsv,
+  keyRowsByColumn,
   detectFormat,
   sniff,
   type Format,
@@ -10,20 +12,26 @@ export {
 export { renderText, renderJson, type RenderOptions } from "./render.js";
 
 import { diff as _diff, type DiffOptions, type Change } from "./diff.js";
-import { parseContent, detectFormat, type Format } from "./parse.js";
+import { parseContent, keyRowsByColumn, detectFormat, type Format } from "./parse.js";
 
 export interface CompareOptions extends DiffOptions {
   formatA?: Format;
   formatB?: Format;
   filenameA?: string;
   filenameB?: string;
+  /** For CSV inputs: match rows by this column instead of by position. */
+  csvKey?: string;
 }
 
 /** High-level helper: compare two raw strings of (possibly different) formats. */
 export function compare(a: string, b: string, opts: CompareOptions = {}): Change[] {
   const fa = opts.formatA ?? detectFormat(opts.filenameA, a);
   const fb = opts.formatB ?? detectFormat(opts.filenameB, b);
-  const va = parseContent(a, fa);
-  const vb = parseContent(b, fb);
+  let va = parseContent(a, fa);
+  let vb = parseContent(b, fb);
+  if (opts.csvKey) {
+    if (fa === "csv") va = keyRowsByColumn(va as Record<string, string>[], opts.csvKey);
+    if (fb === "csv") vb = keyRowsByColumn(vb as Record<string, string>[], opts.csvKey);
+  }
   return _diff(va, vb, opts);
 }

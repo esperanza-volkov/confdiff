@@ -19,7 +19,7 @@ $ confdiff old.yaml new.yaml
 ```
 
 `git diff` shows you *characters*. `confdiff` shows you *keys and values*. It
-parses each file (JSON, YAML, TOML, INI, `.env`) into a data model and compares
+parses each file (JSON, YAML, TOML, INI, `.env`, CSV) into a data model and compares
 the model — so reordered keys, reflowed arrays, changed quoting, added comments
 and indentation tweaks are **not** reported as changes. Only real differences in
 data are.
@@ -48,11 +48,15 @@ each on a single line with a clear path, old value, and new value.
 
 ## Features
 
-- **Five formats, one tool:** JSON, YAML, TOML, INI/`.cfg`/`.conf`, and
-  `.env`/`.properties`. Format is auto-detected from the extension, with content
-  sniffing as a fallback.
+- **Six formats, one tool:** JSON, YAML, TOML, INI/`.cfg`/`.conf`,
+  `.env`/`.properties`, and CSV/TSV. Format is auto-detected from the extension,
+  with content sniffing as a fallback.
 - **Cross-format compare:** diff a `config.json` against its migrated
   `config.yaml` and confirm they're equivalent.
+- **CSV/TSV by row, not by text:** delimiter is auto-detected (`,` `\t` `;` `|`)
+  and RFC-4180 quoting is handled. Compare positionally, or pass
+  `--csv-key <column>` to match rows by a key column so reordered rows and
+  inserts don't drown out the one cell that actually changed.
 - **Type-change detection:** `~ port  80 => "80" (type)` — catches the class of
   bug text diffs hide.
 - **Path globs** for `--ignore` and `--only` — mute volatile fields
@@ -75,7 +79,8 @@ There are great diff tools out there; `confdiff` is aimed at the specific job of
 | YAML | ✅ | ✅ | ✅ | ✅ | — |
 | TOML | ✅ | ✅ | ✅ | — | — |
 | INI / `.env` | ✅ | INI only | — | — | — |
-| XML / CSV | — | ✅ | — | — | — |
+| CSV / TSV | ✅ (keyed rows) | ✅ | — | — | — |
+| XML | — | ✅ | — | — | — |
 | Cross-format compare (JSON ↔ YAML) | ✅ | — | — | — | — |
 | Loose scalar mode (`.env`/INI) | ✅ | — | — | — | — |
 | Semantic (key-order / reflow insensitive) | ✅ | ✅ | partial¹ | ✅ | ✅ |
@@ -91,8 +96,8 @@ the file as data, so reordering keys or reflowing an array is simply not a
 change. Different jobs — use difftastic for code, `confdiff` for config.
 
 ² [diffx](https://github.com/kako-jun/diffx) is the closest tool: a fast,
-mature Rust semantic-diff that also covers XML and CSV. If you live in the Rust
-ecosystem or need those two formats, it's excellent. `confdiff` is aimed at the
+mature Rust semantic-diff that also covers XML. If you live in the Rust
+ecosystem or need XML, it's excellent. `confdiff` is aimed at the
 Node/npm world and leans into config-migration workflows: **cross-format**
 compare (diff a `config.json` against the `config.yaml` it became), a **loose
 scalar mode** so `PORT=80` and `PORT="80"` in `.env`/INI don't read as type
@@ -116,15 +121,17 @@ confdiff <a> <b> [options]
 
   confdiff old.yaml new.yaml
   confdiff config.json config.yaml         # cross-format
+  confdiff old.csv new.csv --csv-key id    # match CSV rows by a key column
   cat a.env | confdiff - b.env --format env
 
 Options:
-  -f, --format <fmt>     Force format for BOTH inputs (json, yaml, toml, ini, env)
+  -f, --format <fmt>     Force format for BOTH inputs (json, yaml, toml, ini, env, csv)
       --format-a <fmt>   Force format for the first input
       --format-b <fmt>   Force format for the second input
   -i, --ignore <glob>    Ignore paths matching glob (repeatable / comma-separated)
   -o, --only <glob>      Only compare paths matching glob (repeatable)
   -l, --loose            Loose scalars: "3"==3, "true"==true
+      --csv-key <col>    For CSV/TSV: match rows by this column, not by position
       --array-set        Compare arrays as unordered sets
       --json             Machine-readable JSON output
   -q, --quiet            No output; communicate via exit code only
@@ -148,6 +155,28 @@ confdiff a.json b.json -i "metadata.*" -i "**.timestamp"
 # only care about the database section
 confdiff a.toml b.toml --only "database.**"
 ```
+
+### CSV / TSV
+
+CSV and TSV are parsed into rows keyed by the header. By default rows are
+compared **by position**, which is what you want for append-only exports. But a
+sorted or re-exported CSV compared positionally looks like everything changed —
+so pass `--csv-key <column>` to match rows by a stable key instead:
+
+```bash
+# users.csv reordered, with one role change and one new row
+$ confdiff old.csv new.csv --csv-key id
+~ 2.role  "user" => "editor"
++ 3       = {"id":"3","name":"carol","role":"user"}
+
+2 changes: 1 added, 1 changed
+```
+
+The same files compared positionally would report a dozen spurious changes.
+Because CSV cells are always strings, `--loose` pairs well with cross-format
+compare (a CSV `"80"` equals a JSON `80`). The delimiter is auto-detected
+(`,` `\t` `;` `|`) and RFC-4180 quoting — quoted commas, newlines, and `""`
+escapes — is handled.
 
 ## Use as a git diff driver
 

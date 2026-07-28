@@ -140,3 +140,34 @@ test("Date vs object is a type change", () => {
   assert.equal(d.length, 1);
   assert.equal(d[0].typeChanged, true);
 });
+
+test("csv positional compare detects a changed cell", () => {
+  const a = "id,role\n1,admin\n2,user\n";
+  const b = "id,role\n1,admin\n2,editor\n";
+  const d = compare(a, b, { filenameA: "a.csv", filenameB: "b.csv" });
+  assert.equal(d.length, 1);
+  assert.equal(d[0].kind, "change");
+  assert.deepEqual(d[0].path, [1, "role"]);
+  assert.equal(d[0].newValue, "editor");
+});
+
+test("csv --csv-key matches rows by key despite reordering", () => {
+  const a = "id,role\n1,admin\n2,user\n";
+  const b = "id,role\n2,user\n1,superadmin\n"; // reordered + one change
+  const positional = compare(a, b, { filenameA: "a.csv", filenameB: "b.csv" });
+  assert.ok(positional.length >= 2); // reorder looks like many changes
+  const keyed = compare(a, b, { filenameA: "a.csv", filenameB: "b.csv", csvKey: "id" });
+  assert.equal(keyed.length, 1);
+  assert.deepEqual(keyed[0].path, ["1", "role"]);
+  assert.equal(keyed[0].newValue, "superadmin");
+});
+
+test("csv with --loose treats numeric strings as equal to numbers when cross-format", () => {
+  // csv value "80" vs json number 80 under loose
+  const d = compare("port\n80\n", '[{"port":80}]', {
+    filenameA: "a.csv",
+    formatB: "json",
+    loose: true,
+  });
+  assert.deepEqual(d, []);
+});
