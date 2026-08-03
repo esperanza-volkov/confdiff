@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- XML support (`.xml`, `.xhtml`, `.svg`, `.plist`, `.xsd`): parsed into a nested
+  data model and diffed semantically, so re-indentation, attribute reordering,
+  and reordered sibling elements are not reported as changes. Attributes are
+  keyed with an `@_` prefix, element text is `#text`, and repeated child
+  elements become arrays. Scalar values are type-coerced so `<port>80</port>`
+  compares equal to a JSON `"port": 80` (cross-format works for XML too).
+  Malformed XML fails cleanly with exit code `2`.
+
 ## [0.1.0]
 
 Initial release.

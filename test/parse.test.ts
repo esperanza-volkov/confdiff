@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { detectFormat, sniff, parseEnv, parseContent, parseCsv, keyRowsByColumn } from "../src/parse.ts";
+import { detectFormat, sniff, parseEnv, parseContent, parseCsv, keyRowsByColumn, parseXml } from "../src/parse.ts";
 
 test("detect by extension", () => {
   assert.equal(detectFormat("a.json", "{}"), "json");
@@ -80,4 +80,34 @@ test("keyRowsByColumn: keys rows and throws on dup/missing", () => {
   assert.deepEqual(keyRowsByColumn(rows, "id"), { "1": { id: "1", n: "a" }, "2": { id: "2", n: "b" } });
   assert.throws(() => keyRowsByColumn(rows, "nope"), /not found/);
   assert.throws(() => keyRowsByColumn([{ id: "1" }, { id: "1" }], "id"), /duplicate/);
+});
+
+test("parseXml: elements and coerced scalars", () => {
+  assert.deepEqual(parseXml("<config><port>80</port><host>a</host></config>"), {
+    config: { port: 80, host: "a" },
+  });
+});
+
+test("parseXml: attributes prefixed with @_ and #text node", () => {
+  assert.deepEqual(parseXml('<user id="7" admin="true">Ann</user>'), {
+    user: { "#text": "Ann", "@_id": 7, "@_admin": true },
+  });
+});
+
+test("parseXml: repeated elements become arrays", () => {
+  assert.deepEqual(parseXml("<list><i>1</i><i>2</i></list>"), { list: { i: [1, 2] } });
+});
+
+test("parseXml: throws a clear error on malformed XML", () => {
+  assert.throws(() => parseXml("<a><b></a>"), /invalid XML/);
+});
+
+test("parseContent routes xml", () => {
+  assert.deepEqual(parseContent("<a>1</a>", "xml"), { a: 1 });
+});
+
+test("detectFormat and sniff recognize xml", () => {
+  assert.equal(detectFormat("a.xml", ""), "xml");
+  assert.equal(detectFormat("a.svg", ""), "xml");
+  assert.equal(sniff("  <root>x</root>"), "xml");
 });

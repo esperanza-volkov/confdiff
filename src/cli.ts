@@ -7,7 +7,7 @@ import { diff } from "./diff.js";
 import { parseContent, keyRowsByColumn, detectFormat, type Format } from "./parse.js";
 import { renderText, renderJson } from "./render.js";
 
-const FORMATS: Format[] = ["json", "yaml", "toml", "ini", "env", "csv"];
+const FORMATS: Format[] = ["json", "yaml", "toml", "ini", "env", "csv", "xml"];
 
 interface Args {
   files: string[];
@@ -44,6 +44,7 @@ ${pc.bold("USAGE")}
   confdiff old.yaml new.yaml
   confdiff config.json config.yaml        # cross-format compare
   confdiff old.csv new.csv --csv-key id   # match CSV rows by a key column
+  confdiff old.xml new.xml                # semantic XML (order-insensitive)
   cat a.env | confdiff - b.env --format env
 
 ${pc.bold("OUTPUT")}

@@ -2,8 +2,9 @@ import { extname } from "node:path";
 import { parse as parseYaml } from "yaml";
 import { parse as parseToml } from "smol-toml";
 import ini from "ini";
+import { XMLParser, XMLValidator } from "fast-xml-parser";
 
-export type Format = "json" | "yaml" | "toml" | "ini" | "env" | "csv";
+export type Format = "json" | "yaml" | "toml" | "ini" | "env" | "csv" | "xml";
 
 export type Value = unknown;
 
@@ -20,6 +21,11 @@ const EXT_MAP: Record<string, Format> = {
   ".properties": "env",
   ".csv": "csv",
   ".tsv": "csv",
+  ".xml": "xml",
+  ".xhtml": "xml",
+  ".svg": "xml",
+  ".plist": "xml",
+  ".xsd": "xml",
 };
 
 /** Detect the format from a filename, falling back to content sniffing. */
@@ -38,6 +44,7 @@ export function detectFormat(filename: string | undefined, content: string): For
 export function sniff(content: string): Format {
   const trimmed = content.trim();
   if (!trimmed) return "json";
+  if (trimmed[0] === "<") return "xml";
   if (trimmed[0] === "{" || trimmed[0] === "[") {
     try {
       JSON.parse(trimmed);
@@ -203,6 +210,37 @@ export function keyRowsByColumn(
   return out;
 }
 
+/**
+ * Parse XML into a plain nested object so it can be diffed semantically —
+ * element/attribute order and insignificant whitespace are ignored, and only
+ * structural or value changes are reported.
+ *
+ * Attributes are keyed with an `@_` prefix (`@_id`), an element's own text
+ * becomes `#text`, and repeated child elements become arrays. Scalar text and
+ * attribute values are type-coerced (so `<port>80</port>` compares equal to a
+ * JSON `"port": 80`); use `--loose` if you'd rather not coerce.
+ */
+export function parseXml(content: string): Value {
+  const valid = XMLValidator.validate(content);
+  if (valid !== true) {
+    const err = (valid as { err?: { msg?: string; line?: number } }).err;
+    const where = err?.line ? ` (line ${err.line})` : "";
+    throw new Error(`invalid XML${where}: ${err?.msg ?? "malformed document"}`);
+  }
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: "@_",
+    textNodeName: "#text",
+    parseTagValue: true,
+    parseAttributeValue: true,
+    trimValues: true,
+    ignoreDeclaration: true,
+    ignorePiTags: true,
+    processEntities: true,
+  });
+  return parser.parse(content);
+}
+
 export function parseContent(content: string, format: Format): Value {
   switch (format) {
     case "json":
@@ -217,6 +255,8 @@ export function parseContent(content: string, format: Format): Value {
       return parseEnv(content);
     case "csv":
       return parseCsv(content);
+    case "xml":
+      return parseXml(content);
     default:
       throw new Error(`unsupported format: ${format as string}`);
   }

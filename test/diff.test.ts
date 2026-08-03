@@ -171,3 +171,19 @@ test("csv with --loose treats numeric strings as equal to numbers when cross-for
   });
   assert.deepEqual(d, []);
 });
+
+test("compare xml ignores element/attribute order (semantic)", () => {
+  const a = '<c a="1"><x>1</x><y>2</y></c>';
+  const b = '<c><y>2</y><x>1</x></c>';
+  // same attr + reordered children => only the attribute differs, order does not
+  assert.deepEqual(compare(a, a), []);
+  const changes = compare(a, b);
+  assert.deepEqual(changes.map((c) => c.kind), ["remove"]); // only @_a removed
+});
+
+test("compare xml vs json cross-format equal", () => {
+  assert.deepEqual(
+    compare("<c><port>80</port></c>", '{"c":{"port":80}}', { formatB: "json" }),
+    [],
+  );
+});

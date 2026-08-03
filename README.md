@@ -19,7 +19,7 @@ $ confdiff old.yaml new.yaml
 ```
 
 `git diff` shows you *characters*. `confdiff` shows you *keys and values*. It
-parses each file (JSON, YAML, TOML, INI, `.env`, CSV) into a data model and compares
+parses each file (JSON, YAML, TOML, INI, `.env`, CSV, XML) into a data model and compares
 the model — so reordered keys, reflowed arrays, changed quoting, added comments
 and indentation tweaks are **not** reported as changes. Only real differences in
 data are.
@@ -48,9 +48,9 @@ each on a single line with a clear path, old value, and new value.
 
 ## Features
 
-- **Six formats, one tool:** JSON, YAML, TOML, INI/`.cfg`/`.conf`,
-  `.env`/`.properties`, and CSV/TSV. Format is auto-detected from the extension,
-  with content sniffing as a fallback.
+- **Seven formats, one tool:** JSON, YAML, TOML, INI/`.cfg`/`.conf`,
+  `.env`/`.properties`, CSV/TSV, and XML (`.xml`/`.svg`/`.plist`/…). Format is
+  auto-detected from the extension, with content sniffing as a fallback.
 - **Cross-format compare:** diff a `config.json` against its migrated
   `config.yaml` and confirm they're equivalent.
 - **CSV/TSV by row, not by text:** delimiter is auto-detected (`,` `\t` `;` `|`)
@@ -80,7 +80,7 @@ There are great diff tools out there; `confdiff` is aimed at the specific job of
 | TOML | ✅ | ✅ | ✅ | — | — |
 | INI / `.env` | ✅ | INI only | — | — | — |
 | CSV / TSV | ✅ (keyed rows) | ✅ | — | — | — |
-| XML | — | ✅ | — | — | — |
+| XML | ✅ | ✅ | — | — | — |
 | Cross-format compare (JSON ↔ YAML) | ✅ | — | — | — | — |
 | Loose scalar mode (`.env`/INI) | ✅ | — | — | — | — |
 | Semantic (key-order / reflow insensitive) | ✅ | ✅ | partial¹ | ✅ | ✅ |
@@ -96,9 +96,9 @@ the file as data, so reordering keys or reflowing an array is simply not a
 change. Different jobs — use difftastic for code, `confdiff` for config.
 
 ² [diffx](https://github.com/kako-jun/diffx) is the closest tool: a fast,
-mature Rust semantic-diff that also covers XML. If you live in the Rust
-ecosystem or need XML, it's excellent. `confdiff` is aimed at the
-Node/npm world and leans into config-migration workflows: **cross-format**
+mature Rust semantic-diff. If you live in the Rust ecosystem it's excellent.
+`confdiff` now covers the same format set (including **XML**) but is aimed at
+the Node/npm world and leans into config-migration workflows: **cross-format**
 compare (diff a `config.json` against the `config.yaml` it became), a **loose
 scalar mode** so `PORT=80` and `PORT="80"` in `.env`/INI don't read as type
 changes, and a drop-in **`git` diff driver** so `git diff` on tracked config
@@ -125,7 +125,7 @@ confdiff <a> <b> [options]
   cat a.env | confdiff - b.env --format env
 
 Options:
-  -f, --format <fmt>     Force format for BOTH inputs (json, yaml, toml, ini, env, csv)
+  -f, --format <fmt>     Force format for BOTH inputs (json, yaml, toml, ini, env, csv, xml)
       --format-a <fmt>   Force format for the first input
       --format-b <fmt>   Force format for the second input
   -i, --ignore <glob>    Ignore paths matching glob (repeatable / comma-separated)
@@ -177,6 +177,24 @@ Because CSV cells are always strings, `--loose` pairs well with cross-format
 compare (a CSV `"80"` equals a JSON `80`). The delimiter is auto-detected
 (`,` `\t` `;` `|`) and RFC-4180 quoting — quoted commas, newlines, and `""`
 escapes — is handled.
+
+### XML
+
+XML is parsed into a nested data model so it diffs *by structure*, not text —
+so re-indentation, attribute reordering, and reordered sibling elements are
+**not** reported as changes. Attributes are keyed with an `@_` prefix, an
+element's own text is `#text`, and repeated child elements become an array:
+
+```bash
+$ confdiff old.xml new.xml
+~ config.server.@_port  8080 => 9090
+~ config.server.#text   "on" => "off"
+```
+
+Scalar text and attribute values are type-coerced, so `<port>80</port>` compares
+equal to a JSON `"port": 80` — cross-format works for XML too (diff a legacy
+`config.xml` against the `config.yaml` it became). Use `--loose` if you'd rather
+not coerce. Malformed XML fails cleanly with exit code `2`.
 
 ## Use as a git diff driver
 

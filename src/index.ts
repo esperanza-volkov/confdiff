@@ -3,6 +3,7 @@ export {
   parseContent,
   parseEnv,
   parseCsv,
+  parseXml,
   keyRowsByColumn,
   detectFormat,
   sniff,
