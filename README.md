@@ -112,6 +112,12 @@ npm install -g confdiff      # global CLI
 npx confdiff old.yaml new.yaml
 ```
 
+Not on npm yet? Install straight from GitHub (builds on install):
+
+```bash
+npm install -g github:esperanza-volkov/confdiff
+```
+
 Requires Node.js ≥ 18.
 
 ## Usage
