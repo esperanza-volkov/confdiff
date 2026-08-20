@@ -217,6 +217,53 @@ Show semantic diffs for config files in `git diff`:
 git config diff.confdiff.command 'confdiff --exit-zero'
 ```
 
+## GitHub Action — semantic config diff on your PRs
+
+Surface the *real* changes in config files right in the PR, instead of a wall of
+reformatted text. The action inspects every changed JSON/YAML/TOML/INI/`.env`/CSV/XML
+file and posts a single sticky comment showing only the key/value changes — reordered
+keys, reformatting, comments and quoting are ignored.
+
+```yaml
+# .github/workflows/confdiff.yml
+name: confdiff
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write   # needed to post the comment
+jobs:
+  config-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # confdiff needs the base commit to compare against
+      - uses: esperanza-volkov/confdiff@v1
+```
+
+A change to `deploy/values.yaml` then shows up as a comment like:
+
+```diff
+~ image      "nginx:1.25" => "nginx:1.26"
+~ replicas   3 => 5
++ newFlag    = true
+```
+
+**Inputs** (all optional): `paths` (pathspecs to limit which files are checked),
+`args` (extra confdiff flags, e.g. `--loose --ignore metadata.*`), `base` (ref to
+diff against), `comment` (`true`/`false`, default `true`), `fail-on-diff` (fail the
+job on any semantic change), `github-token`. **Output:** `changed` (`true`/`false`).
+
+To gate merges on config changes instead of commenting:
+
+```yaml
+      - uses: esperanza-volkov/confdiff@v1
+        with:
+          comment: false
+          fail-on-diff: true
+          paths: 'config/** k8s/**'
+```
+
 ## Programmatic API
 
 ```ts

@@ -8,6 +8,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **GitHub Action** (`esperanza-volkov/confdiff@v1`): drop confdiff into any PR
+  workflow to post a single sticky comment showing the *semantic* diff of every
+  changed JSON/YAML/TOML/INI/`.env`/CSV/XML config file — reformatting, key
+  reordering, comments and quoting are ignored. Inputs: `paths`, `args`, `base`,
+  `comment`, `fail-on-diff`, `github-token`; output: `changed`. Dependency-free
+  composite action wrapping a bundled build of the CLI. See the README.
 - **In-browser playground** (<https://esperanza-volkov.github.io/confdiff/>):
   paste two configs and see the semantic diff live. The format-agnostic core is
   bundled to run 100% client-side — nothing is uploaded. Deployed to GitHub Pages.

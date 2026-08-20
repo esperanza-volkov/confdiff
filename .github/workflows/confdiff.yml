@@ -1,0 +1,19 @@
+name: confdiff (dogfood)
+
+# Runs confdiff's own GitHub Action on pull requests to this repo, so any change
+# to a config/example file shows its semantic diff. Doubles as a live example.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  config-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./

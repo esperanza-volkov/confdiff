@@ -1,0 +1,48 @@
+name: 'confdiff — semantic config diff'
+description: 'Comment the real key/value changes in JSON/YAML/TOML/INI/.env/CSV/XML config files on a PR — not text noise.'
+author: 'Esperanza Volkov'
+branding:
+  icon: 'git-commit'
+  color: 'purple'
+inputs:
+  paths:
+    description: 'Optional space/comma-separated pathspecs limiting which changed files are checked (e.g. "config/** *.yaml").'
+    required: false
+    default: ''
+  args:
+    description: 'Extra arguments passed to confdiff (e.g. "--loose --ignore metadata.*").'
+    required: false
+    default: ''
+  base:
+    description: 'Git ref to diff against. Defaults to the PR base (or the push "before" SHA).'
+    required: false
+    default: ''
+  comment:
+    description: 'Post/update a single sticky PR comment with the semantic diff. Requires github-token and PR context.'
+    required: false
+    default: 'true'
+  github-token:
+    description: 'Token used to post the PR comment.'
+    required: false
+    default: ${{ github.token }}
+  fail-on-diff:
+    description: 'Exit non-zero (fail the job) when semantic differences or parse errors are found.'
+    required: false
+    default: 'false'
+outputs:
+  changed:
+    description: 'true if any semantic differences were found'
+    value: ${{ steps.confdiff.outputs.changed }}
+runs:
+  using: 'composite'
+  steps:
+    - id: confdiff
+      shell: bash
+      env:
+        INPUT_PATHS: ${{ inputs.paths }}
+        INPUT_ARGS: ${{ inputs.args }}
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_COMMENT: ${{ inputs.comment }}
+        INPUT_FAIL_ON_DIFF: ${{ inputs.fail-on-diff }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: node "$GITHUB_ACTION_PATH/action/index.mjs"
