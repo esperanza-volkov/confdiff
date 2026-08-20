@@ -23,7 +23,8 @@
     "build": "tsc -p tsconfig.json",
     "test": "node --test --import tsx test/*.test.ts",
     "prepare": "npm run build",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "build:web": "esbuild web/entry.ts --bundle --format=iife --platform=browser --target=es2020 --alias:node:path=./web/shims/path.js --outfile=docs/playground.js --minify && cp web/index.html docs/index.html && cp web/app.js docs/app.js"
   },
   "keywords": [
     "diff",
@@ -64,6 +65,7 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "esbuild": "^0.24.0"
   }
 }

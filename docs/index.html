@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>confdiff playground — semantic diff for config files</title>
+<meta name="description" content="Semantic, format-aware diff for JSON, YAML, TOML, INI, .env, CSV and XML. Paste two configs and see what actually changed — in your browser, nothing uploaded." />
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#c9d1d9; --dim:#8b949e;
+    --green:#3fb950; --red:#f85149; --yellow:#d29922; --accent:#58a6ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+    font: 15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  header { padding: 28px 20px 8px; text-align:center; }
+  h1 { margin:0; font-size: 30px; letter-spacing:-0.5px; }
+  h1 .c { color: var(--accent); }
+  .tag { color: var(--dim); margin: 6px 0 2px; }
+  .sub { color: var(--dim); font-size: 13px; }
+  .sub code { background: var(--panel); padding: 1px 6px; border-radius: 5px; border:1px solid var(--border); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  main { max-width: 1080px; margin: 0 auto; padding: 12px 16px 60px; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px){ .grid { grid-template-columns: 1fr; } }
+  .pane label { display:flex; justify-content:space-between; align-items:center;
+    font-size: 12px; color: var(--dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+  textarea { width:100%; height: 240px; resize: vertical; background: var(--panel);
+    color: var(--fg); border:1px solid var(--border); border-radius: 8px; padding: 10px;
+    font: 13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; tab-size: 2; }
+  select { background: var(--panel); color: var(--fg); border:1px solid var(--border);
+    border-radius: 6px; padding: 2px 6px; font-size: 12px; }
+  .controls { display:flex; flex-wrap:wrap; gap: 16px; align-items:center; justify-content:center;
+    margin: 16px 0; color: var(--dim); font-size: 13px; }
+  .controls label { display:flex; gap:6px; align-items:center; cursor:pointer; }
+  .out { margin-top: 10px; background: var(--panel); border:1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px; min-height: 60px;
+    font: 13.5px/1.7 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; overflow-x:auto; }
+  .cd-row { white-space: pre; }
+  .cd-sign { display:inline-block; width: 1.2em; font-weight:700; }
+  .cd-path { display:inline-block; min-width: 220px; }
+  .cd-val { }
+  .cd-add, .cd-add .cd-sign { color: var(--green); }
+  .cd-rem, .cd-rem .cd-sign { color: var(--red); }
+  .cd-chg, .cd-chg .cd-sign { color: var(--yellow); }
+  .cd-old { color: var(--red); } .cd-new { color: var(--green); }
+  .cd-type { color: var(--dim); }
+  .cd-none { color: var(--dim); }
+  .cd-summary { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); color: var(--fg); }
+  .cd-err { color: var(--red); }
+  .fmt { color: var(--dim); font-size: 12px; text-align:center; margin-top: 6px; }
+  .toolbar { display:flex; gap:10px; justify-content:center; margin: 10px 0 2px; flex-wrap: wrap; }
+  button { background: var(--panel); color: var(--fg); border:1px solid var(--border);
+    border-radius: 6px; padding: 5px 12px; font-size: 13px; cursor:pointer; }
+  button:hover { border-color: var(--accent); }
+  footer { text-align:center; color: var(--dim); font-size: 12.5px; padding: 20px; }
+  .ai { max-width: 720px; margin: 6px auto 0; text-align:center; color: var(--dim); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>conf<span class="c">diff</span></h1>
+  <div class="tag">Semantic, format-aware diff for config &amp; structured-data files</div>
+  <div class="sub">JSON · YAML · TOML · INI · .env · CSV · XML &nbsp;—&nbsp; see the <em>meaning</em> that changed, not text noise. <a href="https://github.com/esperanza-volkov/confdiff">GitHub &rarr;</a></div>
+</header>
+<main>
+  <div class="toolbar">
+    <button id="ex-yaml">YAML example</button>
+    <button id="ex-cross">JSON &harr; YAML</button>
+    <button id="ex-env">.env (loose)</button>
+    <button id="ex-clear">Clear</button>
+  </div>
+  <div class="grid">
+    <div class="pane">
+      <label>A (old) <select id="fa"></select></label>
+      <textarea id="a" spellcheck="false"></textarea>
+    </div>
+    <div class="pane">
+      <label>B (new) <select id="fb"></select></label>
+      <textarea id="b" spellcheck="false"></textarea>
+    </div>
+  </div>
+  <div class="controls">
+    <label><input type="checkbox" id="loose" /> loose scalars (<code>"80"</code> == <code>80</code>)</label>
+    <label><input type="checkbox" id="arraySet" /> arrays as sets (ignore order)</label>
+    <label><input type="checkbox" id="showjson" /> show JSON output</label>
+  </div>
+  <div class="fmt" id="fmt"></div>
+  <div class="out" id="out"></div>
+  <p class="ai">confdiff is an open-source project built and maintained by Esperanza Volkov, an autonomous AI agent. Runs entirely in your browser — nothing you paste is uploaded.</p>
+</main>
+<footer>
+  MIT licensed · <a href="https://github.com/esperanza-volkov/confdiff">github.com/esperanza-volkov/confdiff</a> ·
+  install: <code>npm i -g github:esperanza-volkov/confdiff</code>
+</footer>
+<script src="./playground.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>

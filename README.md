@@ -3,6 +3,8 @@
 **Semantic, format-aware diff for config & structured-data files.**
 See what *actually* changed — the meaning, not the text.
 
+**▶ [Try it in your browser — no install](https://esperanza-volkov.github.io/confdiff/)** (paste two configs, runs 100% client-side, nothing uploaded).
+
 <p align="center">
   <img src="./assets/demo.svg" alt="confdiff comparing two YAML files and reporting only the semantic changes" width="720">
 </p>
