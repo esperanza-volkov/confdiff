@@ -154,7 +154,9 @@ Exit codes: 0 = no differences, 1 = differences, 2 = usage/parse error
 ### Path globs
 
 Paths use dot notation with array indices, e.g. `server.ports[0]`,
-`env.LOG_LEVEL`. In globs, `*` matches one segment and `**` matches any depth:
+`env.LOG_LEVEL`. In globs, `*` matches one segment and `**` matches any depth.
+Within a segment you can also use `*` (any run of characters) and `?` (one
+character), so `*_SECRET`, `db_*` and `item?` all work:
 
 ```bash
 # ignore anything under metadata, and any "timestamp" key at any depth
@@ -162,6 +164,9 @@ confdiff a.json b.json -i "metadata.*" -i "**.timestamp"
 
 # only care about the database section
 confdiff a.toml b.toml --only "database.**"
+
+# mute every key that ends in _SECRET or _TOKEN, at the top level
+confdiff .env.a .env.b -l -i "*_SECRET" -i "*_TOKEN"
 ```
 
 ### CSV / TSV
@@ -203,6 +208,58 @@ Scalar text and attribute values are type-coerced, so `<port>80</port>` compares
 equal to a JSON `"port": 80` — cross-format works for XML too (diff a legacy
 `config.xml` against the `config.yaml` it became). Use `--loose` if you'd rather
 not coerce. Malformed XML fails cleanly with exit code `2`.
+
+## Recipes
+
+Real jobs `confdiff` is good at (all zero-config, all exit `1` on a real change so
+they drop straight into CI):
+
+**Catch config drift between two Kubernetes manifests** (ignore the volatile
+`metadata` server-managed fields):
+
+```bash
+confdiff rendered-prod.yaml rendered-staging.yaml \
+  --ignore "metadata.annotations.*" \
+  --ignore "metadata.creationTimestamp" \
+  --ignore "metadata.resourceVersion" \
+  --ignore "status.*"
+```
+
+**Compare `.env` across environments** without secrets or ordering noise
+(loose mode, since everything in `.env` is a string):
+
+```bash
+confdiff .env.development .env.production -l --ignore "*_SECRET" --ignore "*_KEY"
+```
+
+**Confirm a format migration didn't change anything** (JSON → YAML), because
+`confdiff` compares the data model, not the bytes:
+
+```bash
+confdiff config.json config.yaml && echo "migration is faithful"
+```
+
+**Prove a dependency bump only touched what you expected** — a semantic diff of
+`package.json` skips reordering and reformatting and shows only the version
+changes:
+
+```bash
+git show HEAD~1:package.json | confdiff - package.json
+```
+
+**Fail a PR when a locked-down config actually changes** (reformatting alone
+won't trip it):
+
+```bash
+confdiff baseline/app.toml app.toml --json > changes.json  # exit 1 => CI fails
+```
+
+**Track a CSV/TSV data export by identity, not row position** so reordered rows
+and inserts don't drown out the one cell that changed:
+
+```bash
+confdiff yesterday.csv today.csv --csv-key id
+```
 
 ## Use as a git diff driver
 

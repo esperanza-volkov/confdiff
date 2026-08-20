@@ -81,6 +81,36 @@ test("ignore deep glob **", () => {
   assert.deepEqual(d[0].path, ["x"]);
 });
 
+test("ignore intra-segment wildcard suffix (*_SECRET)", () => {
+  const d = diff(
+    { API_SECRET: "a", DB_SECRET: "a", KEEP: 1 },
+    { API_SECRET: "b", DB_SECRET: "b", KEEP: 2 },
+    { ignore: ["*_SECRET"] },
+  );
+  assert.equal(d.length, 1);
+  assert.deepEqual(d[0].path, ["KEEP"]);
+});
+
+test("ignore intra-segment wildcard prefix (db_*) and ? placeholder", () => {
+  const d = diff(
+    { db_host: "a", db_port: 1, item1: "x", keep: 1 },
+    { db_host: "b", db_port: 2, item1: "y", keep: 2 },
+    { ignore: ["db_*", "item?"] },
+  );
+  assert.equal(d.length, 1);
+  assert.deepEqual(d[0].path, ["keep"]);
+});
+
+test("bare * still matches exactly one whole segment", () => {
+  const d = diff(
+    { a: { b: 1 }, c: 1 },
+    { a: { b: 2 }, c: 2 },
+    { only: ["*"] },
+  );
+  // `*` matches top-level leaf `c` but not the nested `a.b`
+  assert.deepEqual(d.map((x) => x.path), [["c"]]);
+});
+
 test("only glob restricts comparison", () => {
   const d = diff({ a: 1, b: 1 }, { a: 2, b: 2 }, { only: ["a"] });
   assert.equal(d.length, 1);

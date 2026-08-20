@@ -7692,7 +7692,10 @@ function pathToString(path) {
 }
 function segMatch(pat, seg) {
   if (pat === "*" || pat === "**") return true;
-  return pat === seg;
+  if (pat === seg) return true;
+  if (!pat.includes("*") && !pat.includes("?")) return false;
+  const re = "^" + pat.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".") + "$";
+  return new RegExp(re).test(seg);
 }
 function matchGlob(pattern, path) {
   const pats = pattern.split(".");

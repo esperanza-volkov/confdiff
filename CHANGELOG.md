@@ -8,6 +8,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Intra-segment glob wildcards** in `--ignore`/`--only`: within a path segment,
+  `*` matches any run of characters and `?` matches a single character, so
+  patterns like `*_SECRET`, `db_*` and `item?` now work (previously `*` only
+  matched a whole segment). Cross-segment `*`/`**` behaviour is unchanged.
+- **README "Recipes" section**: copy-pasteable workflows for Kubernetes manifest
+  drift, `.env` across environments, format-migration checks, dependency-bump
+  review, CI drift gates, and keyed CSV/TSV comparison.
+
 - **GitHub Action** (`esperanza-volkov/confdiff@v1`): drop confdiff into any PR
   workflow to post a single sticky comment showing the *semantic* diff of every
   changed JSON/YAML/TOML/INI/`.env`/CSV/XML config file — reformatting, key

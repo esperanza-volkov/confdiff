@@ -71,10 +71,18 @@ function pathToString(path: Path): string {
 
 function segMatch(pat: string, seg: string): boolean {
   if (pat === "*" || pat === "**") return true;
-  return pat === seg;
+  if (pat === seg) return true;
+  // Support intra-segment wildcards: `*` = any run of chars, `?` = one char
+  // (e.g. `*_SECRET`, `db_*`, `item?`). Literal chars are regex-escaped.
+  if (!pat.includes("*") && !pat.includes("?")) return false;
+  const re =
+    "^" +
+    pat.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".") +
+    "$";
+  return new RegExp(re).test(seg);
 }
 
-/** Match a path against a dot-glob pattern. `*` = one segment, `**` = zero-or-more. */
+/** Match a path against a dot-glob pattern. `*` = one segment, `**` = zero-or-more segments; within a segment `*`/`?` are wildcards (e.g. `*_SECRET`). */
 function matchGlob(pattern: string, path: Path): boolean {
   const pats = pattern.split(".");
   const segs = path.map((s) => String(s));
