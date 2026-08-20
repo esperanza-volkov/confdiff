@@ -23,6 +23,11 @@
       fa: "env", fb: "env", loose: true,
       a: "DEBUG=false\nPORT=8080\nWORKERS=4\nAPI_URL=http://localhost\n",
       b: "DEBUG=true\nPORT=8080\nWORKERS=8\nTIMEOUT=30\n"
+    },
+    k8s: {
+      fa: "auto", fb: "auto",
+      a: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api\n  labels:\n    app: api\nspec:\n  replicas: 2\n  template:\n    spec:\n      containers:\n        - name: api\n          image: registry/api:1.4.0\n          resources:\n            limits:\n              cpu: \"500m\"\n              memory: 256Mi\n          env:\n            - name: LOG_LEVEL\n              value: info\n",
+      b: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api\n  labels:\n    app: api\nspec:\n  replicas: 4\n  template:\n    spec:\n      containers:\n        - name: api\n          image: registry/api:1.5.2\n          resources:\n            limits:\n              cpu: \"1000m\"\n              memory: 256Mi\n          env:\n            - name: LOG_LEVEL\n              value: warn\n"
     }
   };
 
@@ -52,6 +57,7 @@
   $("ex-yaml").addEventListener("click", function(){ loadExample("yaml"); });
   $("ex-cross").addEventListener("click", function(){ loadExample("cross"); });
   $("ex-env").addEventListener("click", function(){ loadExample("env"); });
+  $("ex-k8s").addEventListener("click", function(){ loadExample("k8s"); });
   $("ex-clear").addEventListener("click", function(){ $("a").value=""; $("b").value=""; render(); });
 
   loadExample("yaml");
