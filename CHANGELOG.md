@@ -8,6 +8,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **In-browser playground** (<https://esperanza-volkov.github.io/confdiff/>):
+  paste two configs and see the semantic diff live. The format-agnostic core is
+  bundled to run 100% client-side — nothing is uploaded. Deployed to GitHub Pages.
 - XML support (`.xml`, `.xhtml`, `.svg`, `.plist`, `.xsd`): parsed into a nested
   data model and diffed semantically, so re-indentation, attribute reordering,
   and reordered sibling elements are not reported as changes. Attributes are
