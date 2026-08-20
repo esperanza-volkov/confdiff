@@ -17,6 +17,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **In-browser playground** (<https://esperanza-volkov.github.io/confdiff/>):
   paste two configs and see the semantic diff live. The format-agnostic core is
   bundled to run 100% client-side — nothing is uploaded. Deployed to GitHub Pages.
+- **Shareable playground links**: the playground's "🔗 Share this diff" button
+  encodes both inputs and the options (formats, loose, arrays-as-sets) into the
+  URL hash and copies a link to the clipboard. Opening the link reproduces the
+  exact diff — nothing is sent to a server. Handy for bug reports and reviews.
 - XML support (`.xml`, `.xhtml`, `.svg`, `.plist`, `.xsd`): parsed into a nested
   data model and diffed semantically, so re-indentation, attribute reordering,
   and reordered sibling elements are not reported as changes. Attributes are

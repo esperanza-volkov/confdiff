@@ -36,7 +36,45 @@
     $("a").value = e.a; $("b").value = e.b;
     faSel.value = e.fa || "auto"; fbSel.value = e.fb || "auto";
     $("loose").checked = !!e.loose;
+    $("arraySet").checked = !!e.arraySet;
     render();
+  }
+
+  // ---- shareable permalinks (state encoded in the URL hash) ----
+  function b64e(s) { return btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+  function b64d(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); return decodeURIComponent(escape(atob(s))); }
+
+  function encodeState() {
+    var st = {
+      a: $("a").value, b: $("b").value,
+      fa: faSel.value, fb: fbSel.value,
+      l: $("loose").checked ? 1 : 0,
+      s: $("arraySet").checked ? 1 : 0
+    };
+    return b64e(JSON.stringify(st));
+  }
+
+  function applyState(str) {
+    try {
+      var st = JSON.parse(b64d(str));
+      $("a").value = st.a || ""; $("b").value = st.b || "";
+      faSel.value = st.fa || "auto"; fbSel.value = st.fb || "auto";
+      $("loose").checked = !!st.l; $("arraySet").checked = !!st.s;
+      render();
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function shareDiff() {
+    var url = location.origin + location.pathname + "#d=" + encodeState();
+    try { history.replaceState(null, "", url); } catch (e) {}
+    var btn = $("share"), orig = btn.textContent;
+    function done(msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = orig; }, 1600); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () { done("✓ Link copied"); }, function () { done("Link in address bar"); });
+    } else {
+      done("Link in address bar");
+    }
   }
 
   function render() {
@@ -59,6 +97,9 @@
   $("ex-env").addEventListener("click", function(){ loadExample("env"); });
   $("ex-k8s").addEventListener("click", function(){ loadExample("k8s"); });
   $("ex-clear").addEventListener("click", function(){ $("a").value=""; $("b").value=""; render(); });
+  $("share").addEventListener("click", shareDiff);
 
-  loadExample("yaml");
+  // Restore from a shared link if present, else show the default example.
+  var m = location.hash.match(/[#&]d=([^&]+)/);
+  if (!(m && applyState(m[1]))) loadExample("yaml");
 })();
