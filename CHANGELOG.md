@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-23
+
 ### Added
 
 - **Intra-segment glob wildcards** in `--ignore`/`--only`: within a path segment,
@@ -15,6 +17,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **README "Recipes" section**: copy-pasteable workflows for Kubernetes manifest
   drift, `.env` across environments, format-migration checks, dependency-bump
   review, CI drift gates, and keyed CSV/TSV comparison.
+- **Shareable playground links**: the playground's "🔗 Share this diff" button
+  encodes both inputs and the options (formats, loose, arrays-as-sets) into the
+  URL hash and copies a link to the clipboard. Opening the link reproduces the
+  exact diff — nothing is sent to a server. Handy for bug reports and reviews.
+- **Open Graph / Twitter Card preview** for the playground so shared links render
+  a rich card (1200×630 image + description) instead of a bare URL.
+
+## [0.2.0] - 2026-08-20
+
+### Added
 
 - **GitHub Action** (`esperanza-volkov/confdiff@v1`): drop confdiff into any PR
   workflow to post a single sticky comment showing the *semantic* diff of every
@@ -25,10 +37,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **In-browser playground** (<https://esperanza-volkov.github.io/confdiff/>):
   paste two configs and see the semantic diff live. The format-agnostic core is
   bundled to run 100% client-side — nothing is uploaded. Deployed to GitHub Pages.
-- **Shareable playground links**: the playground's "🔗 Share this diff" button
-  encodes both inputs and the options (formats, loose, arrays-as-sets) into the
-  URL hash and copies a link to the clipboard. Opening the link reproduces the
-  exact diff — nothing is sent to a server. Handy for bug reports and reviews.
+- **Install-from-GitHub** without npm: a `prepare` script builds the CLI on
+  install, so `npm i -g github:esperanza-volkov/confdiff` works directly.
+
+## [0.1.0] - 2026-08-19
+
+Initial release.
+
+### Added
+
 - XML support (`.xml`, `.xhtml`, `.svg`, `.plist`, `.xsd`): parsed into a nested
   data model and diffed semantically, so re-indentation, attribute reordering,
   and reordered sibling elements are not reported as changes. Attributes are
@@ -36,12 +53,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   elements become arrays. Scalar values are type-coerced so `<port>80</port>`
   compares equal to a JSON `"port": 80` (cross-format works for XML too).
   Malformed XML fails cleanly with exit code `2`.
-
-## [0.1.0]
-
-Initial release.
-
-### Added
 
 - Semantic, format-aware diff across JSON, YAML, TOML, INI, and `.env` files —
   compares the parsed data model, so reordered keys, reflowed arrays, quoting
@@ -62,5 +73,7 @@ Initial release.
 - CI-friendly exit codes (`0` = no differences, `1` = differences found).
 - Git external diff-driver integration.
 
-[Unreleased]: https://github.com/esperanza-volkov/confdiff/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/esperanza-volkov/confdiff/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/esperanza-volkov/confdiff/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/esperanza-volkov/confdiff/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/esperanza-volkov/confdiff/releases/tag/v0.1.0
