@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { detectFormat, sniff, parseEnv, parseContent, parseCsv, keyRowsByColumn, parseXml } from "../src/parse.ts";
+import { detectFormat, sniff, parseEnv, parseProperties, parseContent, parseCsv, keyRowsByColumn, parseXml } from "../src/parse.ts";
 
 test("detect by extension", () => {
   assert.equal(detectFormat("a.json", "{}"), "json");
@@ -10,6 +10,30 @@ test("detect by extension", () => {
   assert.equal(detectFormat("a.ini", ""), "ini");
   assert.equal(detectFormat(".env", ""), "env");
   assert.equal(detectFormat(".env.production", ""), "env");
+  assert.equal(detectFormat("app.properties", ""), "properties");
+});
+
+test("parseProperties handles =, :, and whitespace separators", () => {
+  // Regression: .properties used to map to the env parser, which only knows
+  // `=`, so `key: value` and `key value` lines were SILENTLY dropped and two
+  // real Spring/log4j property files diffed incompletely.
+  const r = parseProperties("db.host = localhost\ndb.port: 5432\nlog.level INFO\n");
+  assert.equal(r["db.host"], "localhost");
+  assert.equal(r["db.port"], "5432");
+  assert.equal(r["log.level"], "INFO");
+});
+
+test("parseProperties comments, escapes, and continuations", () => {
+  const src =
+    "# comment\n! also comment\n\n" +
+    "path = C\\:\\\\temp\n" +
+    "uni = caf\\u00e9\n" +
+    "desc = a long \\\n  continued value\n";
+  const r = parseProperties(src);
+  assert.equal(Object.keys(r).length, 3);
+  assert.equal(r["path"], "C:\\temp");
+  assert.equal(r["uni"], "café");
+  assert.equal(r["desc"], "a long continued value");
 });
 
 test("sniff json", () => {

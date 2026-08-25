@@ -1,6 +1,6 @@
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var FORMATS = (window.confdiff && window.confdiff.FORMATS) || ["json","yaml","toml","ini","env","csv","xml"];
+  var FORMATS = (window.confdiff && window.confdiff.FORMATS) || ["json","yaml","toml","ini","env","properties","csv","xml"];
   var faSel = $("fa"), fbSel = $("fb");
   ["auto"].concat(FORMATS).forEach(function (f) {
     [faSel, fbSel].forEach(function (sel) {

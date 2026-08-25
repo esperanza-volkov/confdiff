@@ -8,7 +8,7 @@ import { parseContent, keyRowsByColumn, detectFormat, type Format } from "./pars
 import { renderText, renderJson } from "./render.js";
 import { installGitDriver, DEFAULT_PATTERNS } from "./gitdriver.js";
 
-const FORMATS: Format[] = ["json", "yaml", "toml", "ini", "env", "csv", "xml"];
+const FORMATS: Format[] = ["json", "yaml", "toml", "ini", "env", "properties", "csv", "xml"];
 
 interface Args {
   files: string[];

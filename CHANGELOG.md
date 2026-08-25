@@ -6,6 +6,24 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-25
+
+### Fixed
+
+- **Java `.properties` files are now parsed correctly.** `.properties` previously
+  reused the `.env` parser, which only recognises `=` as a separator — so real
+  Spring Boot / log4j / Kafka property lines that use `:` (`server.port: 8080`)
+  or whitespace (`logging.level.root WARN`) were **silently dropped**. Comparing
+  two such files produced an incomplete diff with no error (a silent miss — the
+  worst failure for a diff tool). `.properties` now has a dedicated parser that
+  understands all three separators, `#`/`!` comments, backslash line
+  continuations, and `\uXXXX` / `\:` / `\\` escapes.
+
+### Added
+
+- `properties` is now a first-class format (`--format properties`), distinct
+  from `env`. Auto-detected from the `.properties` extension.
+
 ## [0.7.0] - 2026-08-25
 
 ### Fixed

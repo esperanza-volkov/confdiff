@@ -50,9 +50,10 @@ each on a single line with a clear path, old value, and new value.
 
 ## Features
 
-- **Seven formats, one tool:** JSON, YAML, TOML, INI/`.cfg`/`.conf`,
-  `.env`/`.properties`, CSV/TSV, and XML (`.xml`/`.svg`/`.plist`/…). Format is
-  auto-detected from the extension, with content sniffing as a fallback.
+- **Eight formats, one tool:** JSON, YAML, TOML, INI/`.cfg`/`.conf`, `.env`,
+  Java `.properties` (`=`, `:`, and whitespace separators), CSV/TSV, and XML
+  (`.xml`/`.svg`/`.plist`/…). Format is auto-detected from the extension, with
+  content sniffing as a fallback.
 - **Cross-format compare:** diff a `config.json` against its migrated
   `config.yaml` and confirm they're equivalent.
 - **Multi-document YAML:** files with `---` separators (Kubernetes manifests,

@@ -12630,7 +12630,7 @@ var EXT_MAP = {
   ".cfg": "ini",
   ".conf": "ini",
   ".env": "env",
-  ".properties": "env",
+  ".properties": "properties",
   ".csv": "csv",
   ".tsv": "csv",
   ".xml": "xml",
@@ -12684,6 +12684,91 @@ function parseEnv(content) {
       if (end !== -1) val = val.slice(1, end);
     }
     out[m[1]] = val;
+  }
+  return out;
+}
+function parseProperties(content) {
+  const out = {};
+  const physical = content.split(/\r\n|\r|\n/);
+  const logical = [];
+  let buf = null;
+  for (const raw of physical) {
+    const line = buf === null ? raw : raw.replace(/^[ \t\f]+/, "");
+    const joined = buf === null ? line : buf + line;
+    let bs = 0;
+    for (let i = joined.length - 1; i >= 0 && joined[i] === "\\"; i--) bs++;
+    if (bs % 2 === 1) {
+      buf = joined.slice(0, -1);
+    } else {
+      logical.push(joined);
+      buf = null;
+    }
+  }
+  if (buf !== null) logical.push(buf);
+  for (const logLine of logical) {
+    const s = logLine.replace(/^[ \t\f]+/, "");
+    if (s === "" || s[0] === "#" || s[0] === "!") continue;
+    let i = 0;
+    let keyEnd = s.length;
+    for (; i < s.length; i++) {
+      const c = s[i];
+      if (c === "\\") {
+        i++;
+        continue;
+      }
+      if (c === " " || c === "	" || c === "\f" || c === "=" || c === ":") {
+        keyEnd = i;
+        break;
+      }
+    }
+    const rawKey = s.slice(0, keyEnd);
+    let j = keyEnd;
+    while (j < s.length && (s[j] === " " || s[j] === "	" || s[j] === "\f")) j++;
+    if (j < s.length && (s[j] === "=" || s[j] === ":")) {
+      j++;
+      while (j < s.length && (s[j] === " " || s[j] === "	" || s[j] === "\f")) j++;
+    }
+    const rawVal = s.slice(j);
+    out[unescapeProperties(rawKey)] = unescapeProperties(rawVal);
+  }
+  return out;
+}
+function unescapeProperties(str) {
+  let out = "";
+  for (let i = 0; i < str.length; i++) {
+    const c = str[i];
+    if (c !== "\\") {
+      out += c;
+      continue;
+    }
+    const n = str[++i];
+    if (n === void 0) break;
+    switch (n) {
+      case "t":
+        out += "	";
+        break;
+      case "n":
+        out += "\n";
+        break;
+      case "r":
+        out += "\r";
+        break;
+      case "f":
+        out += "\f";
+        break;
+      case "u": {
+        const hex = str.slice(i + 1, i + 5);
+        if (/^[0-9a-fA-F]{4}$/.test(hex)) {
+          out += String.fromCharCode(parseInt(hex, 16));
+          i += 4;
+        } else {
+          out += "u";
+        }
+        break;
+      }
+      default:
+        out += n;
+    }
   }
   return out;
 }
@@ -12841,6 +12926,8 @@ function parseContent(content, format) {
       return import_ini.default.parse(content);
     case "env":
       return parseEnv(content);
+    case "properties":
+      return parseProperties(content);
     case "csv":
       return parseCsv(content);
     case "xml":
@@ -13004,7 +13091,7 @@ function installGitDriver(opts) {
 
 // src/cli.ts
 var import_meta = {};
-var FORMATS = ["json", "yaml", "toml", "ini", "env", "csv", "xml"];
+var FORMATS = ["json", "yaml", "toml", "ini", "env", "properties", "csv", "xml"];
 function getVersion() {
   try {
     const here = (0, import_node_path3.dirname)((0, import_node_url.fileURLToPath)(import_meta.url));

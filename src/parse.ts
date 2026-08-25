@@ -51,7 +51,7 @@ function parseJsonContent(content: string): Value {
 import ini from "ini";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 
-export type Format = "json" | "yaml" | "toml" | "ini" | "env" | "csv" | "xml";
+export type Format = "json" | "yaml" | "toml" | "ini" | "env" | "properties" | "csv" | "xml";
 
 export type Value = unknown;
 
@@ -65,7 +65,7 @@ const EXT_MAP: Record<string, Format> = {
   ".cfg": "ini",
   ".conf": "ini",
   ".env": "env",
-  ".properties": "env",
+  ".properties": "properties",
   ".csv": "csv",
   ".tsv": "csv",
   ".xml": "xml",
@@ -128,6 +128,119 @@ export function parseEnv(content: string): Record<string, string> {
       if (end !== -1) val = val.slice(1, end);
     }
     out[m[1]] = val;
+  }
+  return out;
+}
+
+/**
+ * Parse a Java `.properties` file (as consumed by `java.util.Properties.load`).
+ *
+ * Unlike `.env`, a properties file accepts THREE key/value separators — `=`,
+ * `:`, or whitespace — plus `#`/`!` comments, backslash line continuations, and
+ * `\uXXXX`/`\t`/`\:` style escapes. Treating `.properties` as `.env` (only `=`)
+ * silently dropped every `key: value` or `key value` line, so comparing two real
+ * Spring/log4j property files produced wrong, incomplete diffs. This parser
+ * handles the full format so those lines are compared instead of vanishing.
+ */
+export function parseProperties(content: string): Record<string, string> {
+  const out: Record<string, string> = {};
+
+  // 1. Split into logical lines, honouring backslash continuation. A line
+  //    continues onto the next when it ends with an ODD number of backslashes.
+  const physical = content.split(/\r\n|\r|\n/);
+  const logical: string[] = [];
+  let buf: string | null = null;
+  for (const raw of physical) {
+    // Leading whitespace of a *continuation* line is stripped; of a fresh line
+    // it is stripped when we locate the key below. Strip here for both.
+    const line: string = buf === null ? raw : raw.replace(/^[ \t\f]+/, "");
+    const joined: string = buf === null ? line : buf + line;
+    // Count trailing backslashes to decide if THIS logical line continues.
+    let bs = 0;
+    for (let i = joined.length - 1; i >= 0 && joined[i] === "\\"; i--) bs++;
+    if (bs % 2 === 1) {
+      buf = joined.slice(0, -1); // drop the escaping backslash, keep accumulating
+    } else {
+      logical.push(joined);
+      buf = null;
+    }
+  }
+  if (buf !== null) logical.push(buf);
+
+  for (const logLine of logical) {
+    // 2. Skip leading whitespace, then blank/comment lines (# or !).
+    const s = logLine.replace(/^[ \t\f]+/, "");
+    if (s === "" || s[0] === "#" || s[0] === "!") continue;
+
+    // 3. Find the key: characters up to the first UNESCAPED separator, which is
+    //    whitespace, `=`, or `:`.
+    let i = 0;
+    let keyEnd = s.length;
+    for (; i < s.length; i++) {
+      const c = s[i];
+      if (c === "\\") {
+        i++; // skip the escaped char (it belongs to the key)
+        continue;
+      }
+      if (c === " " || c === "\t" || c === "\f" || c === "=" || c === ":") {
+        keyEnd = i;
+        break;
+      }
+    }
+    const rawKey = s.slice(0, keyEnd);
+
+    // 4. Skip whitespace after the key; then an optional `=`/`:`; then more ws.
+    let j = keyEnd;
+    while (j < s.length && (s[j] === " " || s[j] === "\t" || s[j] === "\f")) j++;
+    if (j < s.length && (s[j] === "=" || s[j] === ":")) {
+      j++;
+      while (j < s.length && (s[j] === " " || s[j] === "\t" || s[j] === "\f")) j++;
+    }
+    const rawVal = s.slice(j);
+
+    out[unescapeProperties(rawKey)] = unescapeProperties(rawVal);
+  }
+  return out;
+}
+
+/** Process `\uXXXX`, `\t\n\r\f`, and `\<char>` escapes in a properties token. */
+function unescapeProperties(str: string): string {
+  let out = "";
+  for (let i = 0; i < str.length; i++) {
+    const c = str[i];
+    if (c !== "\\") {
+      out += c;
+      continue;
+    }
+    const n = str[++i];
+    if (n === undefined) break;
+    switch (n) {
+      case "t":
+        out += "\t";
+        break;
+      case "n":
+        out += "\n";
+        break;
+      case "r":
+        out += "\r";
+        break;
+      case "f":
+        out += "\f";
+        break;
+      case "u": {
+        const hex = str.slice(i + 1, i + 5);
+        if (/^[0-9a-fA-F]{4}$/.test(hex)) {
+          out += String.fromCharCode(parseInt(hex, 16));
+          i += 4;
+        } else {
+          out += "u";
+        }
+        break;
+      }
+      default:
+        // \=  \:  \  \\  and any other -> the literal following character
+        out += n;
+    }
   }
   return out;
 }
@@ -342,6 +455,8 @@ export function parseContent(content: string, format: Format): Value {
       return ini.parse(content);
     case "env":
       return parseEnv(content);
+    case "properties":
+      return parseProperties(content);
     case "csv":
       return parseCsv(content);
     case "xml":

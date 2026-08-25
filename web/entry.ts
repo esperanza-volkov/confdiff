@@ -2,7 +2,7 @@
 import { compare, detectFormat, renderJson, type Format } from "../src/index.js";
 import { formatPath, type Change } from "../src/diff.js";
 
-const FORMATS: Format[] = ["json", "yaml", "toml", "ini", "env", "csv", "xml"];
+const FORMATS: Format[] = ["json", "yaml", "toml", "ini", "env", "properties", "csv", "xml"];
 
 function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => (
