@@ -140,6 +140,29 @@ test("ignore glob targets a key that itself contains dots (k8s annotation)", () 
   assert.deepEqual(d[0].path, ["metadata", "annotations", "keep"]);
 });
 
+test("array index glob accepts bracket notation the tool itself prints (items[0], items[*])", () => {
+  // The tool renders array paths as `items[0].name`; that exact string, and the
+  // wildcard `items[*].name`, must both be usable as --ignore/--only globs
+  // (round-trippable), alongside the dot forms `items.0.name` / `items.*.name`.
+  const a = { items: [{ name: "a" }], k: 1 };
+  const b = { items: [{ name: "z" }], k: 1 };
+  for (const g of ["items[0].name", "items[*].name", "items.0.name", "items.*.name"]) {
+    const d = diff(a, b, { ignore: [g] });
+    assert.equal(d.length, 0, `pattern ${g} should ignore items[0].name`);
+  }
+  // A non-matching index must NOT be ignored.
+  const d = diff(a, b, { ignore: ["items[1].name"] });
+  assert.equal(d.length, 1);
+  assert.deepEqual(d[0].path, ["items", 0, "name"]);
+});
+
+test("bracket [**] ignores everything under an array segment", () => {
+  const a = { items: [{ name: "a", x: 1 }], k: 1 };
+  const b = { items: [{ name: "z", x: 2 }], k: 9 };
+  const d = diff(a, b, { ignore: ["items[**]"] });
+  assert.deepEqual(d.map((c) => c.path), [["k"]]);
+});
+
 test("only glob selects a dotted key without over-matching siblings", () => {
   const a = { "a.b": 1, a: { b: 10 } };
   const b = { "a.b": 2, a: { b: 20 } };

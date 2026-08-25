@@ -167,7 +167,10 @@ Exit codes: 0 = no differences, 1 = differences, 2 = usage/parse error
 Paths use dot notation with array indices, e.g. `server.ports[0]`,
 `env.LOG_LEVEL`. In globs, `*` matches one segment and `**` matches any depth.
 Within a segment you can also use `*` (any run of characters) and `?` (one
-character), so `*_SECRET`, `db_*` and `item?` all work:
+character), so `*_SECRET`, `db_*` and `item?` all work. Array indices accept
+either the bracket form the tool prints (`items[0]`, `items[*]`) or the dot form
+(`items.0`, `items.*`) — so the exact path shown for a change is always
+round-trippable straight back into `--ignore`/`--only`:
 
 ```bash
 # ignore anything under metadata, and any "timestamp" key at any depth

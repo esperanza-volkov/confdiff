@@ -7697,8 +7697,31 @@ function segMatch(pat, seg) {
   const re = "^" + pat.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".") + "$";
   return new RegExp(re).test(seg);
 }
+function splitPattern(pattern) {
+  const tokens = [];
+  let cur = "";
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i];
+    if (ch === ".") {
+      if (cur !== "") tokens.push(cur);
+      cur = "";
+    } else if (ch === "[") {
+      if (cur !== "") tokens.push(cur);
+      cur = "";
+      let inner = "";
+      let j = i + 1;
+      while (j < pattern.length && pattern[j] !== "]") inner += pattern[j++];
+      tokens.push(inner);
+      i = j;
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur !== "") tokens.push(cur);
+  return tokens;
+}
 function matchGlob(pattern, path) {
-  const pats = pattern.split(".");
+  const pats = splitPattern(pattern);
   const segs = path.map((s) => String(s));
   const rec = (pi, si) => {
     if (pi === pats.length) return si === segs.length;

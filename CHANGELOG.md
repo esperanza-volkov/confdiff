@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-08-25
+
+### Fixed
+
+- **`--ignore` / `--only` now accept the bracket array-index notation the tool
+  itself prints.** Changes are rendered with paths like `items[0].name`, but
+  pasting that exact string (or the wildcard `items[*].name`) into `--ignore`
+  previously did nothing — only the dot form `items.0.name` matched, because the
+  glob matcher split solely on `.`. Patterns are now tokenized understanding both
+  `foo[0]`/`foo[*]`/`foo[**]` and `foo.0`/`foo.*`, so a printed array path is
+  round-trippable straight back into `--ignore`/`--only`. Same round-trip fix as
+  0.6.0's dotted-key work, for the array case. Dot-form patterns and all wildcard
+  semantics are unchanged.
+
 ## [0.6.0] - 2026-08-25
 
 ### Fixed

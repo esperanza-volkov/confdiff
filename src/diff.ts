@@ -82,9 +82,41 @@ function segMatch(pat: string, seg: string): boolean {
   return new RegExp(re).test(seg);
 }
 
-/** Match a path against a dot-glob pattern. `*` = one segment, `**` = zero-or-more segments; within a segment `*`/`?` are wildcards (e.g. `*_SECRET`). */
+/**
+ * Split a glob pattern into segment tokens, understanding BOTH dot notation
+ * and the bracket notation the tool itself prints for array indices. So
+ * `items[0].name`, `items[*].name` and `items.0.name` all tokenize to the same
+ * segment list. This is what makes a printed path (e.g. `items[0].name`)
+ * round-trippable straight back into --ignore/--only. Inside `[...]` the content
+ * is taken verbatim as one token (`0`, `*`, `**`), so an index is never split.
+ */
+function splitPattern(pattern: string): string[] {
+  const tokens: string[] = [];
+  let cur = "";
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i];
+    if (ch === ".") {
+      if (cur !== "") tokens.push(cur);
+      cur = "";
+    } else if (ch === "[") {
+      if (cur !== "") tokens.push(cur);
+      cur = "";
+      let inner = "";
+      let j = i + 1;
+      while (j < pattern.length && pattern[j] !== "]") inner += pattern[j++];
+      tokens.push(inner);
+      i = j; // skip past the closing "]"
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur !== "") tokens.push(cur);
+  return tokens;
+}
+
+/** Match a path against a glob pattern. `*` = one segment, `**` = zero-or-more segments; within a segment `*`/`?` are wildcards (e.g. `*_SECRET`). Array indices may be written `foo[0]`/`foo[*]` or `foo.0`/`foo.*`. */
 function matchGlob(pattern: string, path: Path): boolean {
-  const pats = pattern.split(".");
+  const pats = splitPattern(pattern);
   const segs = path.map((s) => String(s));
   // simple recursive matcher supporting **
   const rec = (pi: number, si: number): boolean => {
