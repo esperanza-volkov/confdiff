@@ -12579,11 +12579,10 @@ function normalizeBigInts(value) {
 function isSafeBig(n) {
   return n >= BigInt(Number.MIN_SAFE_INTEGER) && n <= BigInt(Number.MAX_SAFE_INTEGER);
 }
-function jsonBigIntReviver(_key, val, ctx) {
-  if (typeof val === "number" && ctx && typeof ctx.source === "string" && /^-?\d+$/.test(ctx.source) && !Number.isSafeInteger(val)) {
-    return BigInt(ctx.source);
-  }
-  return val;
+function parseJsonContent(content) {
+  if (!/\d{16,}/.test(content)) return JSON.parse(content);
+  JSON.parse(content);
+  return normalizeBigInts((0, import_yaml.parse)(content, { intAsBigInt: true, uniqueKeys: false }));
 }
 var EXT_MAP = {
   ".json": "json",
@@ -12797,7 +12796,7 @@ function parseContent(content, format) {
   }
   switch (format) {
     case "json":
-      return JSON.parse(content, jsonBigIntReviver);
+      return parseJsonContent(content);
     case "yaml":
       return normalizeBigInts(parseYamlContent(content));
     case "toml":

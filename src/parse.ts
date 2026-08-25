@@ -31,12 +31,22 @@ function isSafeBig(n: bigint): boolean {
   return n >= BigInt(Number.MIN_SAFE_INTEGER) && n <= BigInt(Number.MAX_SAFE_INTEGER);
 }
 
-/** JSON.parse reviver that keeps out-of-safe-range integer literals as BigInt. */
-function jsonBigIntReviver(_key: string, val: unknown, ctx?: { source?: string }): unknown {
-  if (typeof val === "number" && ctx && typeof ctx.source === "string" && /^-?\d+$/.test(ctx.source) && !Number.isSafeInteger(val)) {
-    return BigInt(ctx.source);
-  }
-  return val;
+/**
+ * Parse JSON while preserving integers that exceed JS's safe range as BigInt.
+ * The fast path (the vast majority of documents) is plain `JSON.parse`, so
+ * behaviour is byte-for-byte unchanged. Only when the text contains a run of 16+
+ * digits — the shortest that can exceed 2^53-1 — do we re-parse losslessly via
+ * the (already-bundled, battle-tested) YAML reader, which is a strict superset
+ * of JSON and supports `intAsBigInt`. `normalizeBigInts` then demotes any
+ * safe-range bigints back to plain numbers, so ordinary values are untouched.
+ * This works on every supported Node version (unlike the Node 21+ JSON reviver
+ * `context.source`) and in the browser playground.
+ */
+function parseJsonContent(content: string): Value {
+  if (!/\d{16,}/.test(content)) return JSON.parse(content);
+  // Validate as JSON first so malformed input still yields a JSON-style error.
+  JSON.parse(content);
+  return normalizeBigInts(parseYaml(content, { intAsBigInt: true, uniqueKeys: false }));
 }
 import ini from "ini";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
@@ -323,7 +333,7 @@ export function parseContent(content: string, format: Format): Value {
   }
   switch (format) {
     case "json":
-      return JSON.parse(content, jsonBigIntReviver as (k: string, v: unknown) => unknown);
+      return parseJsonContent(content);
     case "yaml":
       return normalizeBigInts(parseYamlContent(content));
     case "toml":
