@@ -129,6 +129,26 @@ test("only glob restricts comparison", () => {
   assert.deepEqual(d[0].path, ["a"]);
 });
 
+test("ignore glob targets a key that itself contains dots (k8s annotation)", () => {
+  // The printed path is `metadata.annotations.app.kubernetes.io/version`; the
+  // same string must be usable as an --ignore glob even though the final key
+  // (`app.kubernetes.io/version`) contains dots.
+  const a = { metadata: { annotations: { "app.kubernetes.io/version": "1.0", keep: 1 } } };
+  const b = { metadata: { annotations: { "app.kubernetes.io/version": "2.0", keep: 2 } } };
+  const d = diff(a, b, { ignore: ["metadata.annotations.app.kubernetes.io/version"] });
+  assert.equal(d.length, 1);
+  assert.deepEqual(d[0].path, ["metadata", "annotations", "keep"]);
+});
+
+test("only glob selects a dotted key without over-matching siblings", () => {
+  const a = { "a.b": 1, a: { b: 10 } };
+  const b = { "a.b": 2, a: { b: 20 } };
+  // Both a literal `a.b` key and the nested a->b render as `a.b`, so the glob
+  // intentionally matches either rendering; both changes are kept.
+  const d = diff(a, b, { only: ["a.b"] });
+  assert.equal(d.length, 2);
+});
+
 test("container-vs-scalar is a type change", () => {
   const d = diff({ a: { b: 1 } }, { a: 5 });
   assert.equal(d.length, 1);

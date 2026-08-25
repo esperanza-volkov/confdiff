@@ -36,6 +36,15 @@ test("renderJson: structured output with pointer", () => {
   assert.equal(parsed.changes[0].newValue, 2);
 });
 
+test("renderJson: pointer is RFC 6901 escaped (/ and ~ inside keys)", () => {
+  const a = { metadata: { annotations: { "app.kubernetes.io/name": "x", "a~b": 1 } } };
+  const b = { metadata: { annotations: { "app.kubernetes.io/name": "y", "a~b": 2 } } };
+  const parsed = JSON.parse(renderJson(diff(a, b)));
+  const pointers = parsed.changes.map((c: { pointer: string }) => c.pointer);
+  assert.ok(pointers.includes("/metadata/annotations/app.kubernetes.io~1name"));
+  assert.ok(pointers.includes("/metadata/annotations/a~0b"));
+});
+
 test("renderJson: empty diff", () => {
   const parsed = JSON.parse(renderJson([]));
   assert.equal(parsed.changed, false);

@@ -71,7 +71,9 @@ each on a single line with a clear path, old value, and new value.
   float). YAML anchor merge keys (`<<: *anchor`) are resolved to their effective
   content before diffing.
 - **Path globs** for `--ignore` and `--only` — mute volatile fields
-  (`--ignore "metadata.*" --ignore "**.timestamp"`) or focus on a subtree.
+  (`--ignore "metadata.*" --ignore "**.timestamp"`) or focus on a subtree. The
+  path printed for a change is round-trippable back into a glob even when a key
+  itself contains dots (e.g. the k8s annotation `app.kubernetes.io/version`).
 - **Loose mode** (`-l`) treats `"3"`/`3` and `"true"`/`true` as equal — ideal
   for `.env`/INI where everything is a string.
 - **Unordered arrays** (`--array-set`) when list order is not significant.

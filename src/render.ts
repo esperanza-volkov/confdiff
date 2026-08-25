@@ -67,6 +67,19 @@ export function renderText(changes: Change[], opts: RenderOptions = {}): string 
   return lines.join("\n");
 }
 
+/**
+ * Build an RFC 6901 JSON Pointer from a path. Keys are escaped so that a `/`
+ * inside a key (e.g. the k8s annotation `app.kubernetes.io/name`) becomes `~1`
+ * and a literal `~` becomes `~0` — otherwise the pointer would be ambiguous and
+ * break any downstream JSON Pointer consumer. An empty path is the whole
+ * document, whose pointer is the empty string.
+ */
+function toJsonPointer(path: Change["path"]): string {
+  return path
+    .map((s) => "/" + String(s).replace(/~/g, "~0").replace(/\//g, "~1"))
+    .join("");
+}
+
 export function renderJson(changes: Change[]): string {
   // Large integers are preserved as BigInt (lossless); emit them as decimal
   // strings so the JSON stays valid and precise (a raw number would round).
@@ -77,7 +90,7 @@ export function renderJson(changes: Change[]): string {
       count: changes.length,
       changes: changes.map((ch) => ({
         path: ch.path,
-        pointer: "/" + ch.path.map((s) => String(s)).join("/"),
+        pointer: toJsonPointer(ch.path),
         kind: ch.kind,
         ...(ch.oldValue !== undefined || ch.kind !== "add" ? { oldValue: ch.oldValue } : {}),
         ...(ch.newValue !== undefined || ch.kind !== "remove" ? { newValue: ch.newValue } : {}),

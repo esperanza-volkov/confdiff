@@ -6,6 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-25
+
+### Fixed
+
+- **`--ignore` / `--only` can now target keys that themselves contain dots.**
+  Real-world configs have such keys — Kubernetes annotations/labels
+  (`app.kubernetes.io/name`), log4j-style properties, etc. Previously the tool
+  printed a path like `metadata.annotations.app.kubernetes.io/version` but
+  pasting that exact string back into `--ignore` silently did nothing, because
+  the glob split on every `.`. A run of literal pattern segments is now joined
+  to match a single dotted key, so the tool's own printed path is round-trippable
+  into `--ignore`/`--only`. Wildcard (`*`/`**`/`?`) semantics are unchanged.
+- **`--json` `pointer` is now RFC 6901 compliant.** A `/` inside a key (e.g. the
+  annotation `app.kubernetes.io/name`) is escaped to `~1` and a literal `~` to
+  `~0`, so the emitted JSON Pointer is unambiguous and works with any standard
+  JSON Pointer consumer (jq, patch appliers, etc.).
+
 ## [0.5.1] - 2026-08-25
 
 ### Fixed

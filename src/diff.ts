@@ -97,10 +97,29 @@ function matchGlob(pattern: string, path: Path): boolean {
       return false;
     }
     if (si >= segs.length) return false;
-    if (!segMatch(pats[pi], segs[si])) return false;
-    return rec(pi + 1, si + 1);
+    // Standard one-token-per-segment match (preserves intra-segment wildcards).
+    if (segMatch(pats[pi], segs[si]) && rec(pi + 1, si + 1)) return true;
+    // Dotted-key support: a single path segment may itself contain dots (e.g.
+    // the k8s annotation key `app.kubernetes.io/name`, or log4j-style
+    // properties). Such a key is *rendered* with embedded dots, so let a run of
+    // consecutive literal pattern tokens joined by "." match one segment. This
+    // makes the tool's own printed path round-trippable back into --ignore/--only.
+    // Only literal tokens are joined, so wildcard semantics are unchanged.
+    if (!hasWildcard(pats[pi])) {
+      let joined = pats[pi];
+      for (let j = pi + 1; j < pats.length; j++) {
+        if (pats[j] === "**" || hasWildcard(pats[j])) break;
+        joined += "." + pats[j];
+        if (joined === segs[si] && rec(j + 1, si + 1)) return true;
+      }
+    }
+    return false;
   };
   return rec(0, 0);
+}
+
+function hasWildcard(tok: string): boolean {
+  return tok.includes("*") || tok.includes("?");
 }
 
 function pathSelected(path: Path, opts: DiffOptions): boolean {

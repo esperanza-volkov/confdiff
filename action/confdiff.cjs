@@ -7709,10 +7709,21 @@ function matchGlob(pattern, path) {
       return false;
     }
     if (si >= segs.length) return false;
-    if (!segMatch(pats[pi], segs[si])) return false;
-    return rec(pi + 1, si + 1);
+    if (segMatch(pats[pi], segs[si]) && rec(pi + 1, si + 1)) return true;
+    if (!hasWildcard(pats[pi])) {
+      let joined = pats[pi];
+      for (let j = pi + 1; j < pats.length; j++) {
+        if (pats[j] === "**" || hasWildcard(pats[j])) break;
+        joined += "." + pats[j];
+        if (joined === segs[si] && rec(j + 1, si + 1)) return true;
+      }
+    }
+    return false;
   };
   return rec(0, 0);
+}
+function hasWildcard(tok) {
+  return tok.includes("*") || tok.includes("?");
 }
 function pathSelected(path, opts) {
   const s = pathToString(path);
@@ -12870,6 +12881,9 @@ function renderText(changes, opts = {}) {
   lines.push(c.bold(`${changes.length} change${changes.length === 1 ? "" : "s"}: `) + parts.join(", "));
   return lines.join("\n");
 }
+function toJsonPointer(path) {
+  return path.map((s) => "/" + String(s).replace(/~/g, "~0").replace(/\//g, "~1")).join("");
+}
 function renderJson(changes) {
   const bigIntSafe = (_k, v) => typeof v === "bigint" ? v.toString() : v;
   return JSON.stringify(
@@ -12878,7 +12892,7 @@ function renderJson(changes) {
       count: changes.length,
       changes: changes.map((ch) => ({
         path: ch.path,
-        pointer: "/" + ch.path.map((s) => String(s)).join("/"),
+        pointer: toJsonPointer(ch.path),
         kind: ch.kind,
         ...ch.oldValue !== void 0 || ch.kind !== "add" ? { oldValue: ch.oldValue } : {},
         ...ch.newValue !== void 0 || ch.kind !== "remove" ? { newValue: ch.newValue } : {},
