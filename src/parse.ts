@@ -1,6 +1,43 @@
 import { extname } from "node:path";
 import { parse as parseYaml, parseAllDocuments } from "yaml";
 import { parse as parseToml } from "smol-toml";
+
+/**
+ * Integers outside JS's safe range (|n| > 2^53-1) lose precision when parsed
+ * into a plain `number` — e.g. Discord/Twitter "snowflake" IDs or 64-bit
+ * counters. That silently makes two *different* IDs compare EQUAL, the worst
+ * failure mode for a diff tool. We preserve such integers losslessly as
+ * `BigInt` (JSON via a reviver, YAML/TOML via their bigint options) and
+ * normalise safe-range bigints back to plain numbers so ordinary values keep
+ * their usual type and cross-format compares still line up (a `1` is a `1`).
+ */
+function normalizeBigInts(value: Value): Value {
+  if (typeof value === "bigint") {
+    return isSafeBig(value) ? Number(value) : value;
+  }
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) value[i] = normalizeBigInts(value[i]);
+    return value;
+  }
+  if (value !== null && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+    const obj = value as Record<string, unknown>;
+    for (const k of Object.keys(obj)) obj[k] = normalizeBigInts(obj[k]);
+    return obj;
+  }
+  return value;
+}
+
+function isSafeBig(n: bigint): boolean {
+  return n >= BigInt(Number.MIN_SAFE_INTEGER) && n <= BigInt(Number.MAX_SAFE_INTEGER);
+}
+
+/** JSON.parse reviver that keeps out-of-safe-range integer literals as BigInt. */
+function jsonBigIntReviver(_key: string, val: unknown, ctx?: { source?: string }): unknown {
+  if (typeof val === "number" && ctx && typeof ctx.source === "string" && /^-?\d+$/.test(ctx.source) && !Number.isSafeInteger(val)) {
+    return BigInt(ctx.source);
+  }
+  return val;
+}
 import ini from "ini";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 
@@ -249,11 +286,13 @@ export function parseXml(content: string): Value {
  * stream returns an array of documents (positional). Empty documents (e.g. a
  * trailing `---`) are dropped so cosmetic separators don't create phantom diffs.
  */
+const YAML_OPTS = { merge: true, intAsBigInt: true } as const;
+
 function parseYamlContent(content: string): Value {
-  const docs = parseAllDocuments(content);
+  const docs = parseAllDocuments(content, YAML_OPTS);
   if (docs.length <= 1) {
     // Preserve exact single-doc semantics (including empty/blank input).
-    return parseYaml(content);
+    return parseYaml(content, YAML_OPTS);
   }
   const values: Value[] = [];
   for (const doc of docs) {
@@ -284,11 +323,11 @@ export function parseContent(content: string, format: Format): Value {
   }
   switch (format) {
     case "json":
-      return JSON.parse(content);
+      return JSON.parse(content, jsonBigIntReviver as (k: string, v: unknown) => unknown);
     case "yaml":
-      return parseYamlContent(content);
+      return normalizeBigInts(parseYamlContent(content));
     case "toml":
-      return parseToml(content);
+      return normalizeBigInts(parseToml(content, { integersAsBigInt: true }) as Value);
     case "ini":
       return ini.parse(content);
     case "env":

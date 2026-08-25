@@ -65,6 +65,11 @@ each on a single line with a clear path, old value, and new value.
   inserts don't drown out the one cell that actually changed.
 - **Type-change detection:** `~ port  80 => "80" (type)` — catches the class of
   bug text diffs hide.
+- **Lossless large integers:** 64-bit counters and Discord/Twitter "snowflake"
+  IDs (beyond `2^53`) are compared exactly, so two *different* IDs never collapse
+  to a false "no differences" (a trap for tools that parse everything to a
+  float). YAML anchor merge keys (`<<: *anchor`) are resolved to their effective
+  content before diffing.
 - **Path globs** for `--ignore` and `--only` — mute volatile fields
   (`--ignore "metadata.*" --ignore "**.timestamp"`) or focus on a subtree.
 - **Loose mode** (`-l`) treats `"3"`/`3` and `"true"`/`true` as equal — ideal

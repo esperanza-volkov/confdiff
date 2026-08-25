@@ -42,3 +42,17 @@ test("renderJson: empty diff", () => {
   assert.equal(parsed.count, 0);
   assert.deepEqual(parsed.changes, []);
 });
+
+test("renderJson: BigInt values serialize as precise decimal strings", () => {
+  const d = diff({ id: 12345678901234567890n }, { id: 12345678901234567891n });
+  const out = renderJson(d);
+  const parsed = JSON.parse(out);
+  assert.equal(parsed.changes[0].oldValue, "12345678901234567890");
+  assert.equal(parsed.changes[0].newValue, "12345678901234567891");
+});
+
+test("renderText: BigInt values print full digits, no 'n' suffix", () => {
+  const d = diff({ id: 12345678901234567890n }, { id: 12345678901234567891n });
+  const out = renderText(d, { color: false });
+  assert.match(out, /12345678901234567890 => 12345678901234567891/);
+});

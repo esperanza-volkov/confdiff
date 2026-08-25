@@ -135,6 +135,9 @@ function scalarEqual(a: unknown, b: unknown, opts: DiffOptions): boolean {
 /** Stable-ish key for multiset array comparison. */
 function valueKey(v: unknown): string {
   return JSON.stringify(v, (_k, val) => {
+    // BigInt (lossless large integers) isn't JSON-serialisable; tag it so two
+    // distinct big integers get distinct, stable keys.
+    if (typeof val === "bigint") return `${val.toString()}n`;
     if (val && typeof val === "object" && !Array.isArray(val)) {
       const sorted: Record<string, unknown> = {};
       for (const k of Object.keys(val as Record<string, unknown>).sort()) {

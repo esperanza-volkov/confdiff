@@ -6,6 +6,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-25
+
+### Fixed
+
+- **Large integers are compared losslessly (no more silent false "no
+  differences").** Integers beyond JavaScript's safe range (`|n| > 2^53-1`) —
+  64-bit counters, Discord/Twitter "snowflake" IDs — used to parse to the same
+  rounded float, so two *different* IDs compared **equal**, the worst failure
+  mode for a diff tool. They are now preserved exactly (as `BigInt`) for JSON,
+  YAML and TOML, so a real change is always reported. Ordinary safe-range
+  numbers keep their usual type, so nothing else changes and cross-format
+  compares still line up. In `--json` output big integers are emitted as precise
+  decimal strings.
+- **TOML files with large integers no longer crash.** The TOML parser rejected
+  any integer it couldn't represent losslessly (exit 2); confdiff now parses
+  them as `BigInt` and diffs them normally.
+- **YAML merge keys (`<<`) from anchors are now resolved.** A document using
+  `<<: *anchor` (Rails `database.yml`, GitLab CI `extends`-style configs) is now
+  compared by its *effective* merged content instead of showing a phantom `<<`
+  key — so it compares equal to the same config written out in full.
+
 ## [0.4.1] - 2026-08-25
 
 ### Fixed

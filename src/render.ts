@@ -12,7 +12,7 @@ function preview(v: unknown): string {
   if (v === null) return "null";
   if (v === undefined) return "undefined";
   if (typeof v === "object") {
-    const json = JSON.stringify(v);
+    const json = JSON.stringify(v, (_k, val) => (typeof val === "bigint" ? val.toString() : val));
     if (json.length <= 60) return json;
     return json.slice(0, 57) + "...";
   }
@@ -68,6 +68,9 @@ export function renderText(changes: Change[], opts: RenderOptions = {}): string 
 }
 
 export function renderJson(changes: Change[]): string {
+  // Large integers are preserved as BigInt (lossless); emit them as decimal
+  // strings so the JSON stays valid and precise (a raw number would round).
+  const bigIntSafe = (_k: string, v: unknown) => (typeof v === "bigint" ? v.toString() : v);
   return JSON.stringify(
     {
       changed: changes.length > 0,
@@ -81,7 +84,7 @@ export function renderJson(changes: Change[]): string {
         ...(ch.typeChanged ? { typeChanged: true } : {}),
       })),
     },
-    null,
+    bigIntSafe,
     2,
   );
 }

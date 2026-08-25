@@ -7741,6 +7741,7 @@ function scalarEqual(a, b, opts) {
 }
 function valueKey(v) {
   return JSON.stringify(v, (_k, val) => {
+    if (typeof val === "bigint") return `${val.toString()}n`;
     if (val && typeof val === "object" && !Array.isArray(val)) {
       const sorted = {};
       for (const k of Object.keys(val).sort()) {
@@ -12560,6 +12561,30 @@ var XMLValidator = {
 };
 
 // src/parse.ts
+function normalizeBigInts(value) {
+  if (typeof value === "bigint") {
+    return isSafeBig(value) ? Number(value) : value;
+  }
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) value[i] = normalizeBigInts(value[i]);
+    return value;
+  }
+  if (value !== null && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+    const obj = value;
+    for (const k of Object.keys(obj)) obj[k] = normalizeBigInts(obj[k]);
+    return obj;
+  }
+  return value;
+}
+function isSafeBig(n) {
+  return n >= BigInt(Number.MIN_SAFE_INTEGER) && n <= BigInt(Number.MAX_SAFE_INTEGER);
+}
+function jsonBigIntReviver(_key, val, ctx) {
+  if (typeof val === "number" && ctx && typeof ctx.source === "string" && /^-?\d+$/.test(ctx.source) && !Number.isSafeInteger(val)) {
+    return BigInt(ctx.source);
+  }
+  return val;
+}
 var EXT_MAP = {
   ".json": "json",
   ".json5": "json",
@@ -12747,10 +12772,11 @@ function parseXml2(content) {
   });
   return parser.parse(content);
 }
+var YAML_OPTS = { merge: true, intAsBigInt: true };
 function parseYamlContent(content) {
-  const docs = (0, import_yaml.parseAllDocuments)(content);
+  const docs = (0, import_yaml.parseAllDocuments)(content, YAML_OPTS);
   if (docs.length <= 1) {
-    return (0, import_yaml.parse)(content);
+    return (0, import_yaml.parse)(content, YAML_OPTS);
   }
   const values = [];
   for (const doc of docs) {
@@ -12771,11 +12797,11 @@ function parseContent(content, format) {
   }
   switch (format) {
     case "json":
-      return JSON.parse(content);
+      return JSON.parse(content, jsonBigIntReviver);
     case "yaml":
-      return parseYamlContent(content);
+      return normalizeBigInts(parseYamlContent(content));
     case "toml":
-      return parse(content);
+      return normalizeBigInts(parse(content, { integersAsBigInt: true }));
     case "ini":
       return import_ini.default.parse(content);
     case "env":
@@ -12796,7 +12822,7 @@ function preview(v) {
   if (v === null) return "null";
   if (v === void 0) return "undefined";
   if (typeof v === "object") {
-    const json = JSON.stringify(v);
+    const json = JSON.stringify(v, (_k, val) => typeof val === "bigint" ? val.toString() : val);
     if (json.length <= 60) return json;
     return json.slice(0, 57) + "...";
   }
@@ -12844,6 +12870,7 @@ function renderText(changes, opts = {}) {
   return lines.join("\n");
 }
 function renderJson(changes) {
+  const bigIntSafe = (_k, v) => typeof v === "bigint" ? v.toString() : v;
   return JSON.stringify(
     {
       changed: changes.length > 0,
@@ -12857,7 +12884,7 @@ function renderJson(changes) {
         ...ch.typeChanged ? { typeChanged: true } : {}
       }))
     },
-    null,
+    bigIntSafe,
     2
   );
 }

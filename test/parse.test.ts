@@ -142,3 +142,30 @@ test("parseContent: empty/whitespace input is an empty document for every format
   assert.deepEqual(parseContent("", "csv"), [], "empty csv should be []");
   assert.deepEqual(parseContent("  \n", "csv"), [], "whitespace csv should be []");
 });
+
+test("parseContent: large integers beyond 2^53 are preserved losslessly (JSON)", () => {
+  // Two different snowflake-style IDs must NOT compare equal (they parse to the
+  // same lossy float with plain JSON.parse). We keep them as BigInt.
+  const a = parseContent('{"id":12345678901234567890}', "json") as { id: bigint };
+  const b = parseContent('{"id":12345678901234567891}', "json") as { id: bigint };
+  assert.equal(typeof a.id, "bigint");
+  assert.notEqual(a.id, b.id);
+  assert.equal(a.id, 12345678901234567890n);
+});
+
+test("parseContent: safe-range integers stay plain numbers across formats", () => {
+  assert.strictEqual((parseContent('{"n":42}', "json") as { n: unknown }).n, 42);
+  assert.strictEqual((parseContent("n: 42\n", "yaml") as { n: unknown }).n, 42);
+  assert.strictEqual((parseContent("n = 42\n", "toml") as { n: unknown }).n, 42);
+});
+
+test("parseContent: TOML large integers no longer throw and stay lossless", () => {
+  const v = parseContent("id = 12345678901234567890\n", "toml") as { id: bigint };
+  assert.equal(typeof v.id, "bigint");
+  assert.equal(v.id, 12345678901234567890n);
+});
+
+test("parseContent: YAML resolves merge keys (<<) from anchors", () => {
+  const doc = "base: &b\n  x: 1\nchild:\n  <<: *b\n  y: 2\n";
+  assert.deepEqual(parseContent(doc, "yaml"), { base: { x: 1 }, child: { x: 1, y: 2 } });
+});

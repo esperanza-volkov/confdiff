@@ -217,3 +217,18 @@ test("compare xml vs json cross-format equal", () => {
     [],
   );
 });
+
+test("diff: distinct BigInts are reported as a change (not falsely equal)", () => {
+  const d = diff({ id: 12345678901234567890n }, { id: 12345678901234567891n });
+  assert.equal(d.length, 1);
+  assert.equal(d[0].kind, "change");
+});
+
+test("diff: equal BigInts produce no change", () => {
+  assert.equal(diff({ id: 12345678901234567890n }, { id: 12345678901234567890n }).length, 0);
+});
+
+test("diff: BigInt inside array-set comparison keys correctly", () => {
+  const d = diff({ ids: [12345678901234567890n, 2] }, { ids: [2, 12345678901234567890n] }, { arraySet: true });
+  assert.equal(d.length, 0);
+});
