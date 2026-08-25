@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-08-25
+
+### Fixed
+
+- **Empty files no longer crash and behave consistently across formats.** An
+  empty or whitespace-only input is now treated as an empty document (`{}`, or
+  `[]` for CSV) for every format. Previously empty JSON threw a parse error
+  (exit 2) while other formats did not, and empty YAML rendered an awkward
+  `null => {...}` type change. Now `confdiff empty.json full.json` cleanly
+  reports every key as added — matching how a git diff driver sees a
+  newly-added or just-emptied config file.
+
 ## [0.4.0] - 2026-08-25
 
 ### Added

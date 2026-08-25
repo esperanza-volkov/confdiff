@@ -274,6 +274,14 @@ function parseYamlContent(content: string): Value {
 }
 
 export function parseContent(content: string, format: Format): Value {
+  // An empty or whitespace-only input is treated as an empty document, not a
+  // parse error. This mirrors how a git diff driver sees a newly-added or
+  // just-emptied config file (old side empty), so `confdiff empty.json full.json`
+  // cleanly reports every key as added instead of crashing. Behaviour is now
+  // consistent across every format (previously empty JSON threw).
+  if (content.trim() === "") {
+    return format === "csv" ? [] : {};
+  }
   switch (format) {
     case "json":
       return JSON.parse(content);

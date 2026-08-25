@@ -133,3 +133,12 @@ test("parseContent yaml: empty documents between separators are dropped", () => 
   const doc = "a: 1\n---\n---\nb: 2\n";
   assert.deepEqual(parseContent(doc, "yaml"), [{ a: 1 }, { b: 2 }]);
 });
+
+test("parseContent: empty/whitespace input is an empty document for every format", () => {
+  for (const fmt of ["json", "yaml", "toml", "ini", "env", "xml"] as const) {
+    assert.deepEqual(parseContent("", fmt), {}, `empty ${fmt} should be {}`);
+    assert.deepEqual(parseContent("   \n\n", fmt), {}, `whitespace ${fmt} should be {}`);
+  }
+  assert.deepEqual(parseContent("", "csv"), [], "empty csv should be []");
+  assert.deepEqual(parseContent("  \n", "csv"), [], "whitespace csv should be []");
+});

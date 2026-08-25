@@ -12766,6 +12766,9 @@ function parseYamlContent(content) {
   return values;
 }
 function parseContent(content, format) {
+  if (content.trim() === "") {
+    return format === "csv" ? [] : {};
+  }
   switch (format) {
     case "json":
       return JSON.parse(content);
