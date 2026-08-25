@@ -6,6 +6,7 @@ import pc from "picocolors";
 import { diff } from "./diff.js";
 import { parseContent, keyRowsByColumn, detectFormat, type Format } from "./parse.js";
 import { renderText, renderJson } from "./render.js";
+import { installGitDriver, DEFAULT_PATTERNS } from "./gitdriver.js";
 
 const FORMATS: Format[] = ["json", "yaml", "toml", "ini", "env", "csv", "xml"];
 
@@ -23,6 +24,7 @@ interface Args {
   quiet: boolean;
   color?: boolean;
   exitZero: boolean;
+  gitDiffDriver: boolean;
   help: boolean;
   version: boolean;
 }
@@ -74,13 +76,69 @@ ${pc.bold("EXIT CODES")}
   2  usage or parse error
 
 ${pc.bold("GIT INTEGRATION")}
-  Use as a git diff driver for config files. In .gitattributes:
-    *.yaml diff=confdiff
-  In git config:
-    git config diff.confdiff.command 'confdiff --exit-zero'
+  One-time setup, then ${pc.bold("git diff")} shows semantic diffs for config files:
+    confdiff install-git-driver          # wire up the current repo
+    confdiff install-git-driver --global # wire up all your repos
+  This sets diff.confdiff.command and adds patterns (${DEFAULT_PATTERNS.slice(0, 4).join(", ")}, …)
+  to .gitattributes. To wire it up by hand instead:
+    git config diff.confdiff.command 'confdiff --git-diff-driver'
+    echo '*.yaml diff=confdiff' >> .gitattributes
 
 Docs: https://github.com/esperanza-volkov/confdiff
 `;
+
+const INSTALL_HELP = `${pc.bold("confdiff install-git-driver")} — set up confdiff as a git diff driver
+
+${pc.bold("USAGE")}
+  confdiff install-git-driver [--global] [pattern ...]
+
+${pc.bold("OPTIONS")}
+  --global        Configure for all repos (git config --global + global attributes)
+  pattern ...     File patterns to wire up (default: ${DEFAULT_PATTERNS.join(" ")})
+
+After running this, ${pc.bold("git diff")} / ${pc.bold("git log -p")} on matching files shows
+confdiff's semantic diff instead of raw text. Re-running is safe (idempotent).
+`;
+
+function runInstall(rest: string[]): void {
+  if (rest.includes("-h") || rest.includes("--help")) {
+    process.stdout.write(INSTALL_HELP);
+    return;
+  }
+  let global = false;
+  const patterns: string[] = [];
+  for (const arg of rest) {
+    if (arg === "--global") global = true;
+    else if (arg.startsWith("-")) fail(`unknown option "${arg}" for install-git-driver`);
+    else patterns.push(arg);
+  }
+  let res;
+  try {
+    res = installGitDriver({ global, patterns });
+  } catch (e) {
+    fail(`could not configure git: ${(e as Error).message}`);
+  }
+  const scope = res.scope === "global" ? "globally (all repos)" : "for this repo";
+  process.stdout.write(
+    pc.green("✓ ") + `configured ${pc.bold("git")} diff driver ${scope}\n`,
+  );
+  process.stdout.write(`  diff.confdiff.command = ${pc.dim(res.command)}\n`);
+  if (res.added.length) {
+    process.stdout.write(
+      `  added to ${pc.bold(res.attributesFile)}:\n` +
+        res.added.map((p) => `    ${pc.cyan(p)} diff=confdiff`).join("\n") +
+        "\n",
+    );
+  }
+  if (res.alreadyPresent.length) {
+    process.stdout.write(
+      pc.dim(`  already present: ${res.alreadyPresent.join(", ")}\n`),
+    );
+  }
+  process.stdout.write(
+    `\nDone. ${pc.bold("git diff")} on those files now shows semantic changes.\n`,
+  );
+}
 
 function fail(msg: string): never {
   process.stderr.write(pc.red(`error: `) + msg + "\n");
@@ -103,6 +161,7 @@ function parseArgs(argv: string[]): Args {
     json: false,
     quiet: false,
     exitZero: false,
+    gitDiffDriver: false,
     help: false,
     version: false,
   };
@@ -166,6 +225,9 @@ function parseArgs(argv: string[]): Args {
       case "--exit-zero":
         a.exitZero = true;
         break;
+      case "--git-diff-driver":
+        a.gitDiffDriver = true;
+        break;
       default:
         if (arg.startsWith("--") && arg.includes("=")) {
           const eq = arg.indexOf("=");
@@ -191,24 +253,48 @@ function readInput(file: string): string {
 }
 
 export function main(argv = process.argv.slice(2)): void {
+  if (argv[0] === "install-git-driver") {
+    runInstall(argv.slice(1));
+    return;
+  }
   const args = parseArgs(argv);
   if (args.version) {
     process.stdout.write(getVersion() + "\n");
     return;
   }
-  if (args.help || args.files.length === 0) {
+  if (args.help || (args.files.length === 0 && !args.gitDiffDriver)) {
     process.stdout.write(HELP);
     if (args.files.length === 0 && !args.help) process.exit(2);
     return;
   }
+
+  // Git external diff driver calling convention: git invokes the command with
+  // 7 positional args — path old-file old-hex old-mode new-file new-hex new-mode.
+  // Map old-file/new-file to our two inputs and use `path` for format detection.
+  let driverPath: string | undefined;
+  if (args.gitDiffDriver) {
+    if (args.files.length !== 7) {
+      fail(
+        `--git-diff-driver expects git's 7 diff arguments, got ${args.files.length}. ` +
+          `It is meant to be used via: git config diff.confdiff.command 'confdiff --git-diff-driver'`,
+      );
+    }
+    driverPath = args.files[0];
+    args.files = [args.files[1], args.files[4]];
+    // git aborts the whole diff if the driver exits non-zero; never do that.
+    args.exitZero = true;
+  }
+
   if (args.files.length !== 2) fail(`expected exactly 2 inputs, got ${args.files.length}`);
 
   const [fileA, fileB] = args.files;
   const rawA = readInput(fileA);
   const rawB = readInput(fileB);
 
-  const fmtA = args.formatA ?? args.format ?? detectFormat(fileA === "-" ? undefined : basename(fileA), rawA);
-  const fmtB = args.formatB ?? args.format ?? detectFormat(fileB === "-" ? undefined : basename(fileB), rawB);
+  const nameA = driverPath ?? (fileA === "-" ? undefined : basename(fileA));
+  const nameB = driverPath ?? (fileB === "-" ? undefined : basename(fileB));
+  const fmtA = args.formatA ?? args.format ?? detectFormat(nameA, rawA);
+  const fmtB = args.formatB ?? args.format ?? detectFormat(nameB, rawB);
 
   let valA: unknown;
   let valB: unknown;
@@ -244,6 +330,13 @@ export function main(argv = process.argv.slice(2)): void {
       process.stdout.write(renderJson(changes) + "\n");
     } else {
       const color = args.color ?? (process.stdout.isTTY && !process.env.NO_COLOR);
+      if (driverPath) {
+        const header = `confdiff ${driverPath}`;
+        process.stdout.write((color ? pc.bold(header) : header) + "\n");
+        if (changes.length === 0) {
+          process.stdout.write((color ? pc.dim("  (no semantic changes)") : "  (no semantic changes)") + "\n");
+        }
+      }
       process.stdout.write(renderText(changes, { color: !!color }) + "\n");
     }
   }

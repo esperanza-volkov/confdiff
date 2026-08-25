@@ -7652,9 +7652,9 @@ __export(cli_exports, {
   main: () => main
 });
 module.exports = __toCommonJS(cli_exports);
-var import_node_fs = require("node:fs");
+var import_node_fs2 = require("node:fs");
 var import_node_url = require("node:url");
-var import_node_path2 = require("node:path");
+var import_node_path3 = require("node:path");
 var import_picocolors2 = __toESM(require_picocolors(), 1);
 
 // src/diff.ts
@@ -12933,13 +12933,82 @@ function passthrough() {
   });
 }
 
+// src/gitdriver.ts
+var import_node_child_process = require("node:child_process");
+var import_node_fs = require("node:fs");
+var import_node_path2 = require("node:path");
+var import_node_os = require("node:os");
+var DEFAULT_PATTERNS = [
+  "*.json",
+  "*.yaml",
+  "*.yml",
+  "*.toml",
+  "*.ini",
+  "*.env",
+  "*.csv",
+  "*.tsv",
+  "*.xml"
+];
+var DRIVER_COMMAND = "confdiff --git-diff-driver";
+function defaultGit(args) {
+  return (0, import_node_child_process.execFileSync)("git", args, { encoding: "utf8" }).trim();
+}
+function resolveAttributesFile(global, git, cwd) {
+  if (!global) return (0, import_node_path2.join)(cwd, ".gitattributes");
+  let configured = "";
+  try {
+    configured = git(["config", "--global", "--get", "core.attributesFile"]);
+  } catch {
+    configured = "";
+  }
+  if (configured) {
+    return configured.replace(/^~(?=\/|$)/, (0, import_node_os.homedir)());
+  }
+  const base = process.env.XDG_CONFIG_HOME || (0, import_node_path2.join)((0, import_node_os.homedir)(), ".config");
+  return (0, import_node_path2.join)(base, "git", "attributes");
+}
+function installGitDriver(opts) {
+  const git = opts.git ?? defaultGit;
+  const cwd = opts.cwd ?? process.cwd();
+  const patterns = opts.patterns.length ? opts.patterns : DEFAULT_PATTERNS;
+  const configArgs = ["config"];
+  if (opts.global) configArgs.push("--global");
+  git([...configArgs, "diff.confdiff.command", DRIVER_COMMAND]);
+  const attributesFile = resolveAttributesFile(opts.global, git, cwd);
+  const existing = (0, import_node_fs.existsSync)(attributesFile) ? (0, import_node_fs.readFileSync)(attributesFile, "utf8") : "";
+  const existingLines = new Set(
+    existing.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+  );
+  const added = [];
+  const alreadyPresent = [];
+  for (const p of patterns) {
+    const line = `${p} diff=confdiff`;
+    if (existingLines.has(line)) alreadyPresent.push(p);
+    else added.push(p);
+  }
+  if (added.length) {
+    let out = existing;
+    if (out.length && !out.endsWith("\n")) out += "\n";
+    out += added.map((p) => `${p} diff=confdiff`).join("\n") + "\n";
+    (0, import_node_fs.mkdirSync)((0, import_node_path2.dirname)(attributesFile), { recursive: true });
+    (0, import_node_fs.writeFileSync)(attributesFile, out);
+  }
+  return {
+    scope: opts.global ? "global" : "local",
+    attributesFile,
+    added,
+    alreadyPresent,
+    command: DRIVER_COMMAND
+  };
+}
+
 // src/cli.ts
 var import_meta = {};
 var FORMATS = ["json", "yaml", "toml", "ini", "env", "csv", "xml"];
 function getVersion() {
   try {
-    const here = (0, import_node_path2.dirname)((0, import_node_url.fileURLToPath)(import_meta.url));
-    const pkg = JSON.parse((0, import_node_fs.readFileSync)((0, import_node_path2.join)(here, "..", "package.json"), "utf8"));
+    const here = (0, import_node_path3.dirname)((0, import_node_url.fileURLToPath)(import_meta.url));
+    const pkg = JSON.parse((0, import_node_fs2.readFileSync)((0, import_node_path3.join)(here, "..", "package.json"), "utf8"));
     return pkg.version ?? "0.0.0";
   } catch {
     return "0.0.0";
@@ -12982,13 +13051,71 @@ ${import_picocolors2.default.bold("EXIT CODES")}
   2  usage or parse error
 
 ${import_picocolors2.default.bold("GIT INTEGRATION")}
-  Use as a git diff driver for config files. In .gitattributes:
-    *.yaml diff=confdiff
-  In git config:
-    git config diff.confdiff.command 'confdiff --exit-zero'
+  One-time setup, then ${import_picocolors2.default.bold("git diff")} shows semantic diffs for config files:
+    confdiff install-git-driver          # wire up the current repo
+    confdiff install-git-driver --global # wire up all your repos
+  This sets diff.confdiff.command and adds patterns (${DEFAULT_PATTERNS.slice(0, 4).join(", ")}, \u2026)
+  to .gitattributes. To wire it up by hand instead:
+    git config diff.confdiff.command 'confdiff --git-diff-driver'
+    echo '*.yaml diff=confdiff' >> .gitattributes
 
 Docs: https://github.com/esperanza-volkov/confdiff
 `;
+var INSTALL_HELP = `${import_picocolors2.default.bold("confdiff install-git-driver")} \u2014 set up confdiff as a git diff driver
+
+${import_picocolors2.default.bold("USAGE")}
+  confdiff install-git-driver [--global] [pattern ...]
+
+${import_picocolors2.default.bold("OPTIONS")}
+  --global        Configure for all repos (git config --global + global attributes)
+  pattern ...     File patterns to wire up (default: ${DEFAULT_PATTERNS.join(" ")})
+
+After running this, ${import_picocolors2.default.bold("git diff")} / ${import_picocolors2.default.bold("git log -p")} on matching files shows
+confdiff's semantic diff instead of raw text. Re-running is safe (idempotent).
+`;
+function runInstall(rest) {
+  if (rest.includes("-h") || rest.includes("--help")) {
+    process.stdout.write(INSTALL_HELP);
+    return;
+  }
+  let global = false;
+  const patterns = [];
+  for (const arg of rest) {
+    if (arg === "--global") global = true;
+    else if (arg.startsWith("-")) fail(`unknown option "${arg}" for install-git-driver`);
+    else patterns.push(arg);
+  }
+  let res;
+  try {
+    res = installGitDriver({ global, patterns });
+  } catch (e) {
+    fail(`could not configure git: ${e.message}`);
+  }
+  const scope = res.scope === "global" ? "globally (all repos)" : "for this repo";
+  process.stdout.write(
+    import_picocolors2.default.green("\u2713 ") + `configured ${import_picocolors2.default.bold("git")} diff driver ${scope}
+`
+  );
+  process.stdout.write(`  diff.confdiff.command = ${import_picocolors2.default.dim(res.command)}
+`);
+  if (res.added.length) {
+    process.stdout.write(
+      `  added to ${import_picocolors2.default.bold(res.attributesFile)}:
+` + res.added.map((p) => `    ${import_picocolors2.default.cyan(p)} diff=confdiff`).join("\n") + "\n"
+    );
+  }
+  if (res.alreadyPresent.length) {
+    process.stdout.write(
+      import_picocolors2.default.dim(`  already present: ${res.alreadyPresent.join(", ")}
+`)
+    );
+  }
+  process.stdout.write(
+    `
+Done. ${import_picocolors2.default.bold("git diff")} on those files now shows semantic changes.
+`
+  );
+}
 function fail(msg) {
   process.stderr.write(import_picocolors2.default.red(`error: `) + msg + "\n");
   process.stderr.write(`Run ${import_picocolors2.default.bold("confdiff --help")} for usage.
@@ -13009,6 +13136,7 @@ function parseArgs(argv) {
     json: false,
     quiet: false,
     exitZero: false,
+    gitDiffDriver: false,
     help: false,
     version: false
   };
@@ -13072,6 +13200,9 @@ function parseArgs(argv) {
       case "--exit-zero":
         a.exitZero = true;
         break;
+      case "--git-diff-driver":
+        a.gitDiffDriver = true;
+        break;
       default:
         if (arg.startsWith("--") && arg.includes("=")) {
           const eq = arg.indexOf("=");
@@ -13087,30 +13218,47 @@ function parseArgs(argv) {
   return a;
 }
 function readInput(file) {
-  if (file === "-") return (0, import_node_fs.readFileSync)(0, "utf8");
+  if (file === "-") return (0, import_node_fs2.readFileSync)(0, "utf8");
   try {
-    return (0, import_node_fs.readFileSync)(file, "utf8");
+    return (0, import_node_fs2.readFileSync)(file, "utf8");
   } catch (e) {
     fail(`cannot read "${file}": ${e.message}`);
   }
 }
 function main(argv = process.argv.slice(2)) {
+  if (argv[0] === "install-git-driver") {
+    runInstall(argv.slice(1));
+    return;
+  }
   const args = parseArgs(argv);
   if (args.version) {
     process.stdout.write(getVersion() + "\n");
     return;
   }
-  if (args.help || args.files.length === 0) {
+  if (args.help || args.files.length === 0 && !args.gitDiffDriver) {
     process.stdout.write(HELP);
     if (args.files.length === 0 && !args.help) process.exit(2);
     return;
+  }
+  let driverPath;
+  if (args.gitDiffDriver) {
+    if (args.files.length !== 7) {
+      fail(
+        `--git-diff-driver expects git's 7 diff arguments, got ${args.files.length}. It is meant to be used via: git config diff.confdiff.command 'confdiff --git-diff-driver'`
+      );
+    }
+    driverPath = args.files[0];
+    args.files = [args.files[1], args.files[4]];
+    args.exitZero = true;
   }
   if (args.files.length !== 2) fail(`expected exactly 2 inputs, got ${args.files.length}`);
   const [fileA, fileB] = args.files;
   const rawA = readInput(fileA);
   const rawB = readInput(fileB);
-  const fmtA = args.formatA ?? args.format ?? detectFormat(fileA === "-" ? void 0 : (0, import_node_path2.basename)(fileA), rawA);
-  const fmtB = args.formatB ?? args.format ?? detectFormat(fileB === "-" ? void 0 : (0, import_node_path2.basename)(fileB), rawB);
+  const nameA = driverPath ?? (fileA === "-" ? void 0 : (0, import_node_path3.basename)(fileA));
+  const nameB = driverPath ?? (fileB === "-" ? void 0 : (0, import_node_path3.basename)(fileB));
+  const fmtA = args.formatA ?? args.format ?? detectFormat(nameA, rawA);
+  const fmtB = args.formatB ?? args.format ?? detectFormat(nameB, rawB);
   let valA;
   let valB;
   try {
@@ -13142,6 +13290,13 @@ function main(argv = process.argv.slice(2)) {
       process.stdout.write(renderJson(changes) + "\n");
     } else {
       const color = args.color ?? (process.stdout.isTTY && !process.env.NO_COLOR);
+      if (driverPath) {
+        const header = `confdiff ${driverPath}`;
+        process.stdout.write((color ? import_picocolors2.default.bold(header) : header) + "\n");
+        if (changes.length === 0) {
+          process.stdout.write((color ? import_picocolors2.default.dim("  (no semantic changes)") : "  (no semantic changes)") + "\n");
+        }
+      }
       process.stdout.write(renderText(changes, { color: !!color }) + "\n");
     }
   }

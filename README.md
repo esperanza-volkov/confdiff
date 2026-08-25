@@ -277,16 +277,42 @@ confdiff yesterday.csv today.csv --csv-key id
 
 ## Use as a git diff driver
 
-Show semantic diffs for config files in `git diff`:
+Make `git diff`, `git log -p`, `git show` render **semantic** diffs for your
+config files — reordered keys and reformatting stop showing up as noise.
+
+One command sets it up (idempotent, safe to re-run):
 
 ```bash
-# .gitattributes
-*.yaml diff=confdiff
-*.toml diff=confdiff
-
-# once, in your git config:
-git config diff.confdiff.command 'confdiff --exit-zero'
+confdiff install-git-driver            # this repo
+confdiff install-git-driver --global   # all your repos
 ```
+
+That wires up `diff.confdiff.command` and adds the common config patterns
+(`*.json`, `*.yaml`, `*.toml`, `*.ini`, `*.env`, `*.csv`, `*.xml`, …) to
+`.gitattributes`. Pass your own patterns to override the defaults:
+
+```bash
+confdiff install-git-driver "*.conf" "config/**/*.json"
+```
+
+Now a change that only reorders keys shows *no semantic changes*, while a real
+value change shows exactly what moved:
+
+```console
+$ git diff config/app.yaml
+confdiff config/app.yaml
+~ server.port  8080 => 9090
+```
+
+Prefer to wire it up by hand? It's two lines:
+
+```bash
+git config diff.confdiff.command 'confdiff --git-diff-driver'
+echo '*.yaml diff=confdiff' >> .gitattributes
+```
+
+> `--git-diff-driver` receives git's 7 diff arguments and maps them to the two
+> file versions for you — this is the correct invocation for a git diff driver.
 
 ## GitHub Action — semantic config diff on your PRs
 

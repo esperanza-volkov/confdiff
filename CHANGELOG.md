@@ -6,6 +6,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-25
+
+### Fixed
+
+- **The git diff driver now actually works.** git invokes an external diff
+  command with 7 positional arguments (`path old-file old-hex old-mode new-file
+  new-hex new-mode`), so the previously-documented `confdiff --exit-zero` failed
+  every time with `expected exactly 2 inputs, got 7` — meaning `git diff` on a
+  tracked config file died with `fatal: external diff died`. Added a dedicated
+  `--git-diff-driver` mode that consumes git's 7 arguments, maps `old-file` /
+  `new-file` to the two inputs, detects the format from the real `path` (git's
+  temp files have no extension), prints a `confdiff <path>` header, and always
+  exits 0 so git never aborts the diff. Reorder-only changes now correctly show
+  *no semantic changes*.
+
+### Added
+
+- **`confdiff install-git-driver`** — one-command setup for the git diff driver.
+  Sets `diff.confdiff.command` and adds the common config patterns to
+  `.gitattributes` (`--global` wires up every repo, honouring
+  `core.attributesFile`). Idempotent, accepts custom patterns, never duplicates
+  existing lines.
+
 ## [0.6.1] - 2026-08-25
 
 ### Fixed
