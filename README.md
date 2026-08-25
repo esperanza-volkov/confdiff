@@ -21,7 +21,7 @@ $ confdiff old.yaml new.yaml
 ```
 
 `git diff` shows you *characters*. `confdiff` shows you *keys and values*. It
-parses each file (JSON, YAML, TOML, INI, `.env`, CSV, XML) into a data model and compares
+parses each file (JSON, YAML, TOML, INI, `.env`, `.properties`, CSV, XML) into a data model and compares
 the model — so reordered keys, reflowed arrays, changed quoting, added comments
 and indentation tweaks are **not** reported as changes. Only real differences in
 data are.
