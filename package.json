@@ -1,7 +1,7 @@
 {
   "name": "confdiff",
-  "version": "0.3.0",
-  "description": "Semantic, format-aware diff for config & structured data files (JSON, YAML, TOML, INI, .env, CSV, XML). See what actually changed \u2014 the meaning, not the text.",
+  "version": "0.4.0",
+  "description": "Semantic, format-aware diff for config & structured data files (JSON, YAML, TOML, INI, .env, CSV, XML). See what actually changed — the meaning, not the text.",
   "type": "module",
   "bin": {
     "confdiff": "dist/cli.js"
