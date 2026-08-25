@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-08-25
+
+### Fixed
+
+- **`+0` and `-0` are treated as equal.** JSON/YAML can carry a negative zero
+  (`-0`); comparing it against `0` previously reported a useless `0 => 0` change.
+  Numeric zero now compares equal regardless of sign, while `NaN == NaN` (from
+  YAML `.nan`) is still preserved and `NaN` vs a number is still a real change.
+
 ## [0.5.0] - 2026-08-25
 
 ### Fixed

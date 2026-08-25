@@ -42,6 +42,18 @@ test("loose coercion treats string/number/bool as equal", () => {
   assert.deepEqual(diff({ a: "1", b: "true", c: "false" }, { a: 1, b: true, c: false }, { loose: true }), []);
 });
 
+test("positive and negative zero are equal (no useless 0 => 0 diff)", () => {
+  assert.deepEqual(diff({ z: 0 }, { z: -0 }), []);
+  assert.deepEqual(diff({ z: -0 }, { z: 0 }), []);
+});
+
+test("NaN equals NaN but differs from a number", () => {
+  assert.deepEqual(diff({ x: NaN }, { x: NaN }), []);
+  const d = diff({ x: NaN }, { x: 5 });
+  assert.equal(d.length, 1);
+  assert.equal(d[0].kind, "change");
+});
+
 test("array index diff", () => {
   const d = diff([1, 2, 3], [1, 9, 3]);
   assert.equal(d.length, 1);

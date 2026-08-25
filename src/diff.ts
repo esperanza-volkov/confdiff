@@ -129,7 +129,12 @@ function scalarEqual(a: unknown, b: unknown, opts: DiffOptions): boolean {
     a = coerce(a);
     b = coerce(b);
   }
-  return Object.is(scalarValue(a), scalarValue(b));
+  const sa = scalarValue(a);
+  const sb = scalarValue(b);
+  // Object.is keeps NaN == NaN (from YAML `.nan`); the extra `===` treats +0 and
+  // -0 as equal — numerically the same config value, so `0 => -0` isn't a change
+  // (Object.is alone would report a useless "0 => 0" diff).
+  return Object.is(sa, sb) || sa === sb;
 }
 
 /** Stable-ish key for multiset array comparison. */

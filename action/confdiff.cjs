@@ -7737,7 +7737,9 @@ function scalarEqual(a, b, opts) {
     a = coerce(a);
     b = coerce(b);
   }
-  return Object.is(scalarValue(a), scalarValue(b));
+  const sa = scalarValue(a);
+  const sb = scalarValue(b);
+  return Object.is(sa, sb) || sa === sb;
 }
 function valueKey(v) {
   return JSON.stringify(v, (_k, val) => {
