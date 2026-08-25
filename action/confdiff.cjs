@@ -7301,7 +7301,7 @@ var require_public_api = __commonJS({
       const lineCounter$1 = options.lineCounter || prettyErrors && new lineCounter.LineCounter() || null;
       return { lineCounter: lineCounter$1, prettyErrors };
     }
-    function parseAllDocuments(source, options = {}) {
+    function parseAllDocuments2(source, options = {}) {
       const { lineCounter: lineCounter2, prettyErrors } = parseOptions(options);
       const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
       const composer$1 = new composer.Composer(options);
@@ -7376,7 +7376,7 @@ var require_public_api = __commonJS({
       return new Document.Document(value, _replacer, options).toString(options);
     }
     exports2.parse = parse2;
-    exports2.parseAllDocuments = parseAllDocuments;
+    exports2.parseAllDocuments = parseAllDocuments2;
     exports2.parseDocument = parseDocument;
     exports2.stringify = stringify2;
   }
@@ -12747,12 +12747,30 @@ function parseXml2(content) {
   });
   return parser.parse(content);
 }
+function parseYamlContent(content) {
+  const docs = (0, import_yaml.parseAllDocuments)(content);
+  if (docs.length <= 1) {
+    return (0, import_yaml.parse)(content);
+  }
+  const values = [];
+  for (const doc of docs) {
+    if (doc.errors.length > 0) {
+      throw doc.errors[0];
+    }
+    const js = doc.toJS();
+    if (js === null || js === void 0) continue;
+    values.push(js);
+  }
+  if (values.length === 0) return (0, import_yaml.parse)(content);
+  if (values.length === 1) return values[0];
+  return values;
+}
 function parseContent(content, format) {
   switch (format) {
     case "json":
       return JSON.parse(content);
     case "yaml":
-      return (0, import_yaml.parse)(content);
+      return parseYamlContent(content);
     case "toml":
       return parse(content);
     case "ini":

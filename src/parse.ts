@@ -1,5 +1,5 @@
 import { extname } from "node:path";
-import { parse as parseYaml } from "yaml";
+import { parse as parseYaml, parseAllDocuments } from "yaml";
 import { parse as parseToml } from "smol-toml";
 import ini from "ini";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
@@ -241,12 +241,44 @@ export function parseXml(content: string): Value {
   return parser.parse(content);
 }
 
+/**
+ * Parse YAML, transparently supporting multi-document streams (`---`
+ * separators) as used by Kubernetes manifests, `kubectl get -o yaml`, and
+ * Helm renders. A single-document stream returns the document directly (so
+ * existing behaviour and cross-format compares are unchanged); a multi-document
+ * stream returns an array of documents (positional). Empty documents (e.g. a
+ * trailing `---`) are dropped so cosmetic separators don't create phantom diffs.
+ */
+function parseYamlContent(content: string): Value {
+  const docs = parseAllDocuments(content);
+  if (docs.length <= 1) {
+    // Preserve exact single-doc semantics (including empty/blank input).
+    return parseYaml(content);
+  }
+  const values: Value[] = [];
+  for (const doc of docs) {
+    if (doc.errors.length > 0) {
+      throw doc.errors[0];
+    }
+    const js = doc.toJS();
+    // Skip truly empty documents (null/undefined from bare `---`).
+    if (js === null || js === undefined) continue;
+    values.push(js);
+  }
+  // Collapse to single-document semantics when only zero/one real document
+  // remains after dropping empties, so cosmetic `---` separators never change
+  // the diff shape.
+  if (values.length === 0) return parseYaml(content);
+  if (values.length === 1) return values[0];
+  return values;
+}
+
 export function parseContent(content: string, format: Format): Value {
   switch (format) {
     case "json":
       return JSON.parse(content);
     case "yaml":
-      return parseYaml(content);
+      return parseYamlContent(content);
     case "toml":
       return parseToml(content);
     case "ini":

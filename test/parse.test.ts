@@ -111,3 +111,25 @@ test("detectFormat and sniff recognize xml", () => {
   assert.equal(detectFormat("a.svg", ""), "xml");
   assert.equal(sniff("  <root>x</root>"), "xml");
 });
+
+test("parseContent yaml: multi-document stream becomes an array of documents", () => {
+  const doc = "kind: Service\nname: web\n---\nkind: ConfigMap\nport: 80\n";
+  assert.deepEqual(parseContent(doc, "yaml"), [
+    { kind: "Service", name: "web" },
+    { kind: "ConfigMap", port: 80 },
+  ]);
+});
+
+test("parseContent yaml: single document is returned directly (not wrapped)", () => {
+  assert.deepEqual(parseContent("a: 1\nb: 2\n", "yaml"), { a: 1, b: 2 });
+});
+
+test("parseContent yaml: trailing/cosmetic --- separator does not wrap in array", () => {
+  assert.deepEqual(parseContent("a: 1\n---\n", "yaml"), { a: 1 });
+  assert.deepEqual(parseContent("---\na: 1\n", "yaml"), { a: 1 });
+});
+
+test("parseContent yaml: empty documents between separators are dropped", () => {
+  const doc = "a: 1\n---\n---\nb: 2\n";
+  assert.deepEqual(parseContent(doc, "yaml"), [{ a: 1 }, { b: 2 }]);
+});

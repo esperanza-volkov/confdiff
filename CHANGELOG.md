@@ -6,6 +6,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Multi-document YAML support:** YAML files containing multiple documents
+  separated by `---` (Kubernetes manifests, `kubectl get -o yaml` output, Helm
+  renders) are now parsed into a list of documents and compared per-document,
+  instead of failing with a "Source contains multiple documents" error.
+  Single-document files are unchanged, and cosmetic trailing/empty separators do
+  not create phantom diffs.
+
 ## [0.3.0] - 2026-08-23
 
 ### Added

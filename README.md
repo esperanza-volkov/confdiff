@@ -55,6 +55,10 @@ each on a single line with a clear path, old value, and new value.
   auto-detected from the extension, with content sniffing as a fallback.
 - **Cross-format compare:** diff a `config.json` against its migrated
   `config.yaml` and confirm they're equivalent.
+- **Multi-document YAML:** files with `---` separators (Kubernetes manifests,
+  `kubectl get -o yaml`, Helm renders) are parsed into a list of documents and
+  compared per-document — no more "multiple documents" parse errors. Cosmetic
+  trailing/empty separators don't create phantom diffs.
 - **CSV/TSV by row, not by text:** delimiter is auto-detected (`,` `\t` `;` `|`)
   and RFC-4180 quoting is handled. Compare positionally, or pass
   `--csv-key <column>` to match rows by a key column so reordered rows and
