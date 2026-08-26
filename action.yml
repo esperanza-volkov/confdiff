@@ -13,6 +13,10 @@ inputs:
     description: 'Extra arguments passed to confdiff (e.g. "--loose --ignore metadata.*").'
     required: false
     default: ''
+  redact:
+    description: 'Mask secret values (passwords/tokens/keys) as fingerprints in the PR comment, so config drift is shown without leaking credentials. Recommended for repos with secrets-bearing config.'
+    required: false
+    default: 'false'
   base:
     description: 'Git ref to diff against. Defaults to the PR base (or the push "before" SHA).'
     required: false
@@ -41,6 +45,7 @@ runs:
       env:
         INPUT_PATHS: ${{ inputs.paths }}
         INPUT_ARGS: ${{ inputs.args }}
+        INPUT_REDACT: ${{ inputs.redact }}
         INPUT_BASE: ${{ inputs.base }}
         INPUT_COMMENT: ${{ inputs.comment }}
         INPUT_FAIL_ON_DIFF: ${{ inputs.fail-on-diff }}

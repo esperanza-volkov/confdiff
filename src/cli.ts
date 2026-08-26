@@ -6,6 +6,7 @@ import pc from "picocolors";
 import { diff } from "./diff.js";
 import { parseContent, keyRowsByColumn, detectFormat, type Format } from "./parse.js";
 import { renderText, renderJson } from "./render.js";
+import { makeRedactMatcher } from "./redact.js";
 import { installGitDriver, DEFAULT_PATTERNS } from "./gitdriver.js";
 
 const FORMATS: Format[] = ["json", "yaml", "toml", "ini", "env", "properties", "csv", "xml"];
@@ -20,6 +21,8 @@ interface Args {
   arraySet: boolean;
   loose: boolean;
   csvKey?: string;
+  redact: boolean;
+  redactKeys: string[];
   json: boolean;
   quiet: boolean;
   color?: boolean;
@@ -62,6 +65,9 @@ ${pc.bold("OPTIONS")}
   -o, --only <glob>      Only compare paths matching glob (repeatable)
   -l, --loose            Loose scalars: "3"==3, "true"==true (great for .env/.ini)
       --csv-key <col>    For CSV/TSV: match rows by this column, not by position
+      --redact           Mask secret values (passwords/tokens/keys) as a stable
+                         fingerprint — safe to paste a diff into a PR/Slack/CI
+      --redact-key <glob> Also redact values at these key/path globs (repeatable)
       --array-set        Compare arrays as unordered sets (ignore element order)
       --json             Machine-readable JSON output (for CI / scripts)
   -q, --quiet            No output; communicate via exit code only
@@ -158,6 +164,8 @@ function parseArgs(argv: string[]): Args {
     only: [],
     arraySet: false,
     loose: false,
+    redact: false,
+    redactKeys: [],
     json: false,
     quiet: false,
     exitZero: false,
@@ -205,6 +213,13 @@ function parseArgs(argv: string[]): Args {
         break;
       case "--csv-key":
         a.csvKey = next();
+        break;
+      case "--redact":
+        a.redact = true;
+        break;
+      case "--redact-key":
+        a.redactKeys.push(...next().split(",").map((s) => s.trim()).filter(Boolean));
+        a.redact = true;
         break;
       case "--array-set":
         a.arraySet = true;
@@ -325,9 +340,14 @@ export function main(argv = process.argv.slice(2)): void {
     loose: args.loose,
   });
 
+  // Built-in secret heuristics are always active when redaction is on (adding
+  // --redact-key extends them). Erring toward over-redaction is safe; the failure
+  // mode to avoid is leaking a value the heuristics didn't catch.
+  const redactMatcher = args.redact ? makeRedactMatcher(true, args.redactKeys) : undefined;
+
   if (!args.quiet) {
     if (args.json) {
-      process.stdout.write(renderJson(changes) + "\n");
+      process.stdout.write(renderJson(changes, { redact: redactMatcher }) + "\n");
     } else {
       const color = args.color ?? (process.stdout.isTTY && !process.env.NO_COLOR);
       if (driverPath) {
@@ -337,7 +357,7 @@ export function main(argv = process.argv.slice(2)): void {
           process.stdout.write((color ? pc.dim("  (no semantic changes)") : "  (no semantic changes)") + "\n");
         }
       }
-      process.stdout.write(renderText(changes, { color: !!color }) + "\n");
+      process.stdout.write(renderText(changes, { color: !!color, redact: redactMatcher }) + "\n");
     }
   }
 

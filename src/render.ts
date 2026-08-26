@@ -1,10 +1,13 @@
 import pc from "picocolors";
 import { type Change, formatPath } from "./diff.js";
+import { redactToken, type RedactMatcher } from "./redact.js";
 
 export interface RenderOptions {
   color?: boolean;
   labelA?: string;
   labelB?: string;
+  /** If set, values at matching paths are replaced with a non-reversible fingerprint. */
+  redact?: RedactMatcher;
 }
 
 function preview(v: unknown): string {
@@ -22,6 +25,9 @@ function preview(v: unknown): string {
 export function renderText(changes: Change[], opts: RenderOptions = {}): string {
   const useColor = opts.color ?? true;
   const c = useColor ? pc : passthrough();
+  const redact = opts.redact;
+  const show = (ch: Change, v: unknown): string =>
+    redact && redact(ch.path) ? redactToken(v) : preview(v);
 
   if (changes.length === 0) {
     return c.dim("no semantic differences");
@@ -43,16 +49,16 @@ export function renderText(changes: Change[], opts: RenderOptions = {}): string 
     const p = formatPath(ch.path);
     if (ch.kind === "add") {
       added++;
-      lines.push(`${c.green("+")} ${c.green(pad(p))}  ${c.dim("=")} ${c.green(preview(ch.newValue))}`);
+      lines.push(`${c.green("+")} ${c.green(pad(p))}  ${c.dim("=")} ${c.green(show(ch, ch.newValue))}`);
     } else if (ch.kind === "remove") {
       removed++;
-      lines.push(`${c.red("-")} ${c.red(pad(p))}  ${c.dim("=")} ${c.red(preview(ch.oldValue))}`);
+      lines.push(`${c.red("-")} ${c.red(pad(p))}  ${c.dim("=")} ${c.red(show(ch, ch.oldValue))}`);
     } else {
       changed++;
       const tag = ch.typeChanged ? c.dim(" (type)") : "";
       lines.push(
-        `${c.yellow("~")} ${c.yellow(pad(p))}${tag}  ${c.red(preview(ch.oldValue))} ${c.dim("=>")} ${c.green(
-          preview(ch.newValue),
+        `${c.yellow("~")} ${c.yellow(pad(p))}${tag}  ${c.red(show(ch, ch.oldValue))} ${c.dim("=>")} ${c.green(
+          show(ch, ch.newValue),
         )}`,
       );
     }
@@ -80,22 +86,29 @@ function toJsonPointer(path: Change["path"]): string {
     .join("");
 }
 
-export function renderJson(changes: Change[]): string {
+export function renderJson(changes: Change[], opts: { redact?: RedactMatcher } = {}): string {
   // Large integers are preserved as BigInt (lossless); emit them as decimal
   // strings so the JSON stays valid and precise (a raw number would round).
   const bigIntSafe = (_k: string, v: unknown) => (typeof v === "bigint" ? v.toString() : v);
+  const redact = opts.redact;
   return JSON.stringify(
     {
       changed: changes.length > 0,
       count: changes.length,
-      changes: changes.map((ch) => ({
-        path: ch.path,
-        pointer: toJsonPointer(ch.path),
-        kind: ch.kind,
-        ...(ch.oldValue !== undefined || ch.kind !== "add" ? { oldValue: ch.oldValue } : {}),
-        ...(ch.newValue !== undefined || ch.kind !== "remove" ? { newValue: ch.newValue } : {}),
-        ...(ch.typeChanged ? { typeChanged: true } : {}),
-      })),
+      changes: changes.map((ch) => {
+        const masked = !!(redact && redact(ch.path));
+        const old = masked ? redactToken(ch.oldValue) : ch.oldValue;
+        const nw = masked ? redactToken(ch.newValue) : ch.newValue;
+        return {
+          path: ch.path,
+          pointer: toJsonPointer(ch.path),
+          kind: ch.kind,
+          ...(ch.oldValue !== undefined || ch.kind !== "add" ? { oldValue: old } : {}),
+          ...(ch.newValue !== undefined || ch.kind !== "remove" ? { newValue: nw } : {}),
+          ...(ch.typeChanged ? { typeChanged: true } : {}),
+          ...(masked ? { redacted: true } : {}),
+        };
+      }),
     },
     bigIntSafe,
     2,

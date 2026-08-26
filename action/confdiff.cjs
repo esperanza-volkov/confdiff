@@ -7748,6 +7748,15 @@ function matchGlob(pattern, path) {
 function hasWildcard(tok) {
   return tok.includes("*") || tok.includes("?");
 }
+function matchAnyGlob(path, patterns) {
+  for (const p of patterns) {
+    if (matchGlob(p, path)) return true;
+    if (!p.includes(".") && !p.includes("[") && path.length > 0) {
+      if (segMatch(p, String(path[path.length - 1]))) return true;
+    }
+  }
+  return false;
+}
 function pathSelected(path, opts) {
   const s = pathToString(path);
   if (opts.ignore && opts.ignore.some((p) => matchGlob(p, path))) return false;
@@ -12939,6 +12948,75 @@ function parseContent(content, format) {
 
 // src/render.ts
 var import_picocolors = __toESM(require_picocolors(), 1);
+
+// src/redact.ts
+var SECRET_TOKENS = [
+  "password",
+  "passwd",
+  "passphrase",
+  "pwd",
+  "secret",
+  "token",
+  "apikey",
+  "accesskey",
+  "secretkey",
+  "privatekey",
+  "signingkey",
+  "encryptionkey",
+  "credential",
+  "credentials",
+  "clientsecret",
+  "authtoken",
+  "accesstoken",
+  "refreshtoken",
+  "bearer",
+  "dsn"
+];
+function keyTokens(seg) {
+  return seg.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+}
+function looksSecret(seg) {
+  const words = keyTokens(seg);
+  if (words.length === 0) return false;
+  const joined = words.join("");
+  if (SECRET_TOKENS.includes(joined)) return true;
+  for (const w of words) {
+    if (SECRET_TOKENS.includes(w)) return true;
+    if (w === "key" && words.some((x) => ["api", "access", "secret", "private", "signing", "encryption"].includes(x)))
+      return true;
+  }
+  return false;
+}
+function makeRedactMatcher(builtins, globs) {
+  return (path) => {
+    if (globs.length && matchAnyGlob(path, globs)) return true;
+    if (builtins && path.length > 0) {
+      const last = path[path.length - 1];
+      if (typeof last === "string" && looksSecret(last)) return true;
+    }
+    return false;
+  };
+}
+function cyrb53(str, seed = 2654435769) {
+  let h1 = 3735928559 ^ seed;
+  let h2 = 1103547991 ^ seed;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ h1 >>> 16, 2246822507) ^ Math.imul(h2 ^ h2 >>> 13, 3266489909);
+  h2 = Math.imul(h2 ^ h2 >>> 16, 2246822507) ^ Math.imul(h1 ^ h1 >>> 13, 3266489909);
+  return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+}
+function redactToken(v) {
+  if (v === void 0) return "\xABredacted\xBB";
+  const s = typeof v === "string" ? v : JSON.stringify(v, (_k, val) => typeof val === "bigint" ? val.toString() : val);
+  const h = (cyrb53(s ?? "null") & 16777215).toString(16).padStart(6, "0");
+  return `\xABredacted:${h}\xBB`;
+}
+
+// src/render.ts
 function preview(v) {
   if (typeof v === "string") return JSON.stringify(v);
   if (v === null) return "null";
@@ -12953,6 +13031,8 @@ function preview(v) {
 function renderText(changes, opts = {}) {
   const useColor = opts.color ?? true;
   const c = useColor ? import_picocolors.default : passthrough();
+  const redact = opts.redact;
+  const show = (ch, v) => redact && redact(ch.path) ? redactToken(v) : preview(v);
   if (changes.length === 0) {
     return c.dim("no semantic differences");
   }
@@ -12969,16 +13049,16 @@ function renderText(changes, opts = {}) {
     const p = formatPath(ch.path);
     if (ch.kind === "add") {
       added++;
-      lines.push(`${c.green("+")} ${c.green(pad(p))}  ${c.dim("=")} ${c.green(preview(ch.newValue))}`);
+      lines.push(`${c.green("+")} ${c.green(pad(p))}  ${c.dim("=")} ${c.green(show(ch, ch.newValue))}`);
     } else if (ch.kind === "remove") {
       removed++;
-      lines.push(`${c.red("-")} ${c.red(pad(p))}  ${c.dim("=")} ${c.red(preview(ch.oldValue))}`);
+      lines.push(`${c.red("-")} ${c.red(pad(p))}  ${c.dim("=")} ${c.red(show(ch, ch.oldValue))}`);
     } else {
       changed++;
       const tag = ch.typeChanged ? c.dim(" (type)") : "";
       lines.push(
-        `${c.yellow("~")} ${c.yellow(pad(p))}${tag}  ${c.red(preview(ch.oldValue))} ${c.dim("=>")} ${c.green(
-          preview(ch.newValue)
+        `${c.yellow("~")} ${c.yellow(pad(p))}${tag}  ${c.red(show(ch, ch.oldValue))} ${c.dim("=>")} ${c.green(
+          show(ch, ch.newValue)
         )}`
       );
     }
@@ -12994,20 +13074,27 @@ function renderText(changes, opts = {}) {
 function toJsonPointer(path) {
   return path.map((s) => "/" + String(s).replace(/~/g, "~0").replace(/\//g, "~1")).join("");
 }
-function renderJson(changes) {
+function renderJson(changes, opts = {}) {
   const bigIntSafe = (_k, v) => typeof v === "bigint" ? v.toString() : v;
+  const redact = opts.redact;
   return JSON.stringify(
     {
       changed: changes.length > 0,
       count: changes.length,
-      changes: changes.map((ch) => ({
-        path: ch.path,
-        pointer: toJsonPointer(ch.path),
-        kind: ch.kind,
-        ...ch.oldValue !== void 0 || ch.kind !== "add" ? { oldValue: ch.oldValue } : {},
-        ...ch.newValue !== void 0 || ch.kind !== "remove" ? { newValue: ch.newValue } : {},
-        ...ch.typeChanged ? { typeChanged: true } : {}
-      }))
+      changes: changes.map((ch) => {
+        const masked = !!(redact && redact(ch.path));
+        const old = masked ? redactToken(ch.oldValue) : ch.oldValue;
+        const nw = masked ? redactToken(ch.newValue) : ch.newValue;
+        return {
+          path: ch.path,
+          pointer: toJsonPointer(ch.path),
+          kind: ch.kind,
+          ...ch.oldValue !== void 0 || ch.kind !== "add" ? { oldValue: old } : {},
+          ...ch.newValue !== void 0 || ch.kind !== "remove" ? { newValue: nw } : {},
+          ...ch.typeChanged ? { typeChanged: true } : {},
+          ...masked ? { redacted: true } : {}
+        };
+      })
     },
     bigIntSafe,
     2
@@ -13124,6 +13211,9 @@ ${import_picocolors2.default.bold("OPTIONS")}
   -o, --only <glob>      Only compare paths matching glob (repeatable)
   -l, --loose            Loose scalars: "3"==3, "true"==true (great for .env/.ini)
       --csv-key <col>    For CSV/TSV: match rows by this column, not by position
+      --redact           Mask secret values (passwords/tokens/keys) as a stable
+                         fingerprint \u2014 safe to paste a diff into a PR/Slack/CI
+      --redact-key <glob> Also redact values at these key/path globs (repeatable)
       --array-set        Compare arrays as unordered sets (ignore element order)
       --json             Machine-readable JSON output (for CI / scripts)
   -q, --quiet            No output; communicate via exit code only
@@ -13220,6 +13310,8 @@ function parseArgs(argv) {
     only: [],
     arraySet: false,
     loose: false,
+    redact: false,
+    redactKeys: [],
     json: false,
     quiet: false,
     exitZero: false,
@@ -13267,6 +13359,13 @@ function parseArgs(argv) {
         break;
       case "--csv-key":
         a.csvKey = next();
+        break;
+      case "--redact":
+        a.redact = true;
+        break;
+      case "--redact-key":
+        a.redactKeys.push(...next().split(",").map((s) => s.trim()).filter(Boolean));
+        a.redact = true;
         break;
       case "--array-set":
         a.arraySet = true;
@@ -13372,9 +13471,10 @@ function main(argv = process.argv.slice(2)) {
     arraySet: args.arraySet,
     loose: args.loose
   });
+  const redactMatcher = args.redact ? makeRedactMatcher(true, args.redactKeys) : void 0;
   if (!args.quiet) {
     if (args.json) {
-      process.stdout.write(renderJson(changes) + "\n");
+      process.stdout.write(renderJson(changes, { redact: redactMatcher }) + "\n");
     } else {
       const color = args.color ?? (process.stdout.isTTY && !process.env.NO_COLOR);
       if (driverPath) {
@@ -13384,7 +13484,7 @@ function main(argv = process.argv.slice(2)) {
           process.stdout.write((color ? import_picocolors2.default.dim("  (no semantic changes)") : "  (no semantic changes)") + "\n");
         }
       }
-      process.stdout.write(renderText(changes, { color: !!color }) + "\n");
+      process.stdout.write(renderText(changes, { color: !!color, redact: redactMatcher }) + "\n");
     }
   }
   process.exit(args.exitZero ? 0 : changes.length > 0 ? 1 : 0);

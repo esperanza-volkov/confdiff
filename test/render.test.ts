@@ -65,3 +65,52 @@ test("renderText: BigInt values print full digits, no 'n' suffix", () => {
   const out = renderText(d, { color: false });
   assert.match(out, /12345678901234567890 => 12345678901234567891/);
 });
+
+// --- secret redaction (--redact) ---
+import { makeRedactMatcher, looksSecret, redactToken } from "../src/redact.ts";
+
+test("looksSecret: matches secret-ish keys, not innocent look-alikes", () => {
+  for (const k of ["password", "DB_PASSWORD", "api_token", "apiKey", "ACCESS_KEY", "clientSecret", "passphrase", "refresh_token"])
+    assert.ok(looksSecret(k), `${k} should look secret`);
+  for (const k of ["keyboard", "monkey", "username", "host", "donkey", "port"])
+    assert.ok(!looksSecret(k), `${k} should NOT look secret`);
+});
+
+test("renderText: --redact masks secret values but shows they changed", () => {
+  const d = diff({ DB_PASSWORD: "hunter2", DEBUG: "false" }, { DB_PASSWORD: "s3cr3t99", DEBUG: "true" });
+  const redact = makeRedactMatcher(true, []);
+  const out = renderText(d, { color: false, redact });
+  assert.doesNotMatch(out, /hunter2|s3cr3t99/); // raw secret never leaks
+  assert.match(out, /DB_PASSWORD\s+«redacted:[0-9a-f]{6}» => «redacted:[0-9a-f]{6}»/);
+  assert.match(out, /DEBUG\s+"false" => "true"/); // non-secret shown normally
+});
+
+test("renderText: differing secrets get different fingerprints (drift stays visible)", () => {
+  const d = diff({ token: "a" }, { token: "b" });
+  const redact = makeRedactMatcher(true, []);
+  const out = renderText(d, { color: false, redact });
+  const m = out.match(/«redacted:([0-9a-f]{6})» => «redacted:([0-9a-f]{6})»/);
+  assert.ok(m && m[1] !== m[2]);
+});
+
+test("redactToken: stable and non-reversible", () => {
+  assert.equal(redactToken("x"), redactToken("x"));
+  assert.notEqual(redactToken("x"), redactToken("y"));
+  assert.doesNotMatch(redactToken("supersecret"), /supersecret/);
+});
+
+test("renderJson: --redact masks value and flags redacted:true", () => {
+  const d = diff({ api_key: "old" }, { api_key: "new" });
+  const redact = makeRedactMatcher(true, []);
+  const parsed = JSON.parse(renderJson(d, { redact }));
+  assert.equal(parsed.changes[0].redacted, true);
+  assert.match(parsed.changes[0].oldValue, /^«redacted:[0-9a-f]{6}»$/);
+  assert.doesNotMatch(JSON.stringify(parsed), /"old"|"new"/);
+});
+
+test("makeRedactMatcher: custom key glob extends builtins", () => {
+  const redact = makeRedactMatcher(true, ["keyboard"]);
+  assert.ok(redact(["keyboard"]));   // custom
+  assert.ok(redact(["DB_PASSWORD"])); // builtin still active
+  assert.ok(!redact(["username"]));
+});

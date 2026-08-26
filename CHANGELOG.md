@@ -6,6 +6,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-26
+
+### Added
+
+- **Secret-safe diffs (`--redact`).** Secret-looking values — passwords, tokens,
+  API keys — are replaced in the output with a stable, non-reversible fingerprint
+  (`«redacted:1a2b3c»`) instead of the raw value. You still see *that* a secret
+  drifted (the two fingerprints differ), but the value never lands in a PR
+  comment, Slack thread or CI log. Non-secret keys print normally, and an
+  unchanged secret is never reported. No other config-diff tool does this.
+  - Built-in heuristics match secret-ish key names (`password`, `secret`,
+    `token`, `api_key`, `access_key`, `private_key`, `credential`,
+    `client_secret`, `passphrase`, `dsn`, …) case- and separator-insensitively,
+    but not innocent look-alikes like `keyboard`/`monkey`.
+  - `--redact-key <glob>` (repeatable/comma-separated) redacts extra
+    keys/paths, using the same globs as `--ignore`/`--only`.
+  - `--json` masks the value and adds `"redacted": true` on the change.
+- **GitHub Action `redact` input** (`redact: true`) — masks secrets in the PR
+  comment, so a changed credential is never posted where repo readers can see it.
+- **Playground:** a `🔒 redact secrets` toggle and a `secrets (redacted)` example;
+  the redact state is captured in shareable permalinks.
+
 ## [0.8.0] - 2026-08-25
 
 ### Fixed

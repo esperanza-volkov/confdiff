@@ -154,6 +154,23 @@ function hasWildcard(tok: string): boolean {
   return tok.includes("*") || tok.includes("?");
 }
 
+/**
+ * Public helper: does `path` match ANY of the given glob `patterns`? Uses the
+ * same matcher as --ignore/--only (dot + bracket notation, `*`/`**`/`?`, dotted
+ * keys). Also treats a bare key-name token (no separators) as matching that key
+ * at any depth, so `--redact password` masks `db.password` and `password`.
+ */
+export function matchAnyGlob(path: Path, patterns: string[]): boolean {
+  for (const p of patterns) {
+    if (matchGlob(p, path)) return true;
+    // bare key name -> match that last segment anywhere
+    if (!p.includes(".") && !p.includes("[") && path.length > 0) {
+      if (segMatch(p, String(path[path.length - 1]))) return true;
+    }
+  }
+  return false;
+}
+
 function pathSelected(path: Path, opts: DiffOptions): boolean {
   const s = pathToString(path);
   if (opts.ignore && opts.ignore.some((p) => matchGlob(p, path))) return false;

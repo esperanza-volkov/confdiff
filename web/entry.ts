@@ -1,6 +1,7 @@
 // Browser entry for the confdiff playground. Bundled to docs/playground.js.
 import { compare, detectFormat, renderJson, type Format } from "../src/index.js";
 import { formatPath, type Change } from "../src/diff.js";
+import { makeRedactMatcher, redactToken, type RedactMatcher } from "../src/redact.js";
 
 const FORMATS: Format[] = ["json", "yaml", "toml", "ini", "env", "properties", "csv", "xml"];
 
@@ -33,7 +34,7 @@ export interface RunResult {
 export function run(
   a: string,
   b: string,
-  opts: { formatA?: Format | "auto"; formatB?: Format | "auto"; loose?: boolean; arraySet?: boolean } = {},
+  opts: { formatA?: Format | "auto"; formatB?: Format | "auto"; loose?: boolean; arraySet?: boolean; redact?: boolean } = {},
 ): RunResult {
   try {
     const fa = (opts.formatA && opts.formatA !== "auto" ? opts.formatA : detectFormat(undefined, a)) as Format;
@@ -44,28 +45,31 @@ export function run(
       loose: opts.loose,
       arraySet: opts.arraySet,
     });
-    return { html: renderHtml(changes), json: renderJson(changes), count: changes.length, fa, fb };
+    const redact = opts.redact ? makeRedactMatcher(true, []) : undefined;
+    return { html: renderHtml(changes, redact), json: renderJson(changes, { redact }), count: changes.length, fa, fb };
   } catch (e) {
     return { html: "", json: "", count: 0, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
-function renderHtml(changes: Change[]): string {
+function renderHtml(changes: Change[], redact?: RedactMatcher): string {
+  const show = (ch: Change, v: unknown): string =>
+    redact && redact(ch.path) ? redactToken(v) : preview(v);
   if (changes.length === 0) return `<div class="cd-none">no semantic differences</div>`;
   let added = 0, removed = 0, changed = 0;
   const rows = changes.map((ch) => {
     const p = esc(formatPath(ch.path));
     if (ch.kind === "add") {
       added++;
-      return `<div class="cd-row cd-add"><span class="cd-sign">+</span><span class="cd-path">${p}</span><span class="cd-val">= ${esc(preview(ch.newValue))}</span></div>`;
+      return `<div class="cd-row cd-add"><span class="cd-sign">+</span><span class="cd-path">${p}</span><span class="cd-val">= ${esc(show(ch, ch.newValue))}</span></div>`;
     }
     if (ch.kind === "remove") {
       removed++;
-      return `<div class="cd-row cd-rem"><span class="cd-sign">-</span><span class="cd-path">${p}</span><span class="cd-val">= ${esc(preview(ch.oldValue))}</span></div>`;
+      return `<div class="cd-row cd-rem"><span class="cd-sign">-</span><span class="cd-path">${p}</span><span class="cd-val">= ${esc(show(ch, ch.oldValue))}</span></div>`;
     }
     changed++;
     const tag = ch.typeChanged ? ` <span class="cd-type">(type)</span>` : "";
-    return `<div class="cd-row cd-chg"><span class="cd-sign">~</span><span class="cd-path">${p}${tag}</span><span class="cd-val"><span class="cd-old">${esc(preview(ch.oldValue))}</span> &rarr; <span class="cd-new">${esc(preview(ch.newValue))}</span></span></div>`;
+    return `<div class="cd-row cd-chg"><span class="cd-sign">~</span><span class="cd-path">${p}${tag}</span><span class="cd-val"><span class="cd-old">${esc(show(ch, ch.oldValue))}</span> &rarr; <span class="cd-new">${esc(show(ch, ch.newValue))}</span></span></div>`;
   });
   const parts: string[] = [];
   if (added) parts.push(`<span class="cd-add">${added} added</span>`);

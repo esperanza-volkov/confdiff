@@ -64,6 +64,11 @@ each on a single line with a clear path, old value, and new value.
   and RFC-4180 quoting is handled. Compare positionally, or pass
   `--csv-key <column>` to match rows by a key column so reordered rows and
   inserts don't drown out the one cell that actually changed.
+- **Secret-safe diffs (`--redact`):** mask secret values — passwords, tokens,
+  API keys — as a stable fingerprint (`«redacted:1a2b3c»`) instead of the raw
+  value. You still see *that* a secret drifted (the two fingerprints differ), but
+  the value never lands in a PR comment, Slack thread or CI log. No other
+  config-diff tool does this. See [Secret-safe diffs](#secret-safe-diffs---redact).
 - **Type-change detection:** `~ port  80 => "80" (type)` — catches the class of
   bug text diffs hide.
 - **Lossless large integers:** 64-bit counters and Discord/Twitter "snowflake"
@@ -152,6 +157,8 @@ Options:
   -o, --only <glob>      Only compare paths matching glob (repeatable)
   -l, --loose            Loose scalars: "3"==3, "true"==true
       --csv-key <col>    For CSV/TSV: match rows by this column, not by position
+      --redact           Mask secret values (passwords/tokens/keys) as fingerprints
+      --redact-key <glob> Also redact values at these key/path globs (repeatable)
       --array-set        Compare arrays as unordered sets
       --json             Machine-readable JSON output
   -q, --quiet            No output; communicate via exit code only
@@ -223,6 +230,47 @@ Scalar text and attribute values are type-coerced, so `<port>80</port>` compares
 equal to a JSON `"port": 80` — cross-format works for XML too (diff a legacy
 `config.xml` against the `config.yaml` it became). Use `--loose` if you'd rather
 not coerce. Malformed XML fails cleanly with exit code `2`.
+
+### Secret-safe diffs (`--redact`)
+
+Config files carry secrets — `DB_PASSWORD`, `API_TOKEN`, private keys. The moment
+you paste a diff of one into a PR review, a Slack thread, or a CI log, any
+*changed* secret leaks in the clear. `--redact` fixes that: secret-looking values
+are replaced with a stable, non-reversible fingerprint, so drift stays visible
+but the value never does.
+
+```bash
+$ confdiff prod.env staging.env --redact
+~ DB_PASSWORD  «redacted:28c19f» => «redacted:7ae46c»
+~ API_TOKEN    «redacted:4badbf» => «redacted:057852»
+~ LOG_LEVEL    "info" => "debug"
+
+3 changes: 3 changed
+```
+
+You can tell each secret changed — the two fingerprints differ — without either
+value being recoverable from the output. Non-secret keys (`LOG_LEVEL`) print
+normally. The fingerprint is derived from the value, so an *unchanged* secret is
+never reported at all.
+
+- Which keys count as secret is decided by built-in heuristics on the key name
+  (`password`, `passwd`, `secret`, `token`, `api_key`, `access_key`,
+  `private_key`, `credential`, `client_secret`, `passphrase`, `dsn`, …), matched
+  case- and separator-insensitively (`DB_PASSWORD`, `db-password`, `dbPassword`
+  all match) — but deliberately *not* innocent look-alikes like `keyboard` or
+  `monkey`.
+- Add your own with `--redact-key <glob>` (repeatable, comma-separated). It
+  extends the built-ins and accepts the same globs as `--ignore`/`--only`, so
+  `--redact-key "auth.*"` or a bare key name both work.
+- `--json` output masks the value too and adds `"redacted": true` on that change.
+
+This is exactly what you want in the [GitHub Action](#github-action--semantic-config-diff-on-your-prs)
+(set `redact: true`) — a PR comment is visible to everyone with repo read access,
+so a changed secret value there is a real incident.
+
+> Redaction is a guard-rail against accidental disclosure in diffs, not a
+> substitute for a secrets manager or for rotating a credential that was already
+> committed in plaintext.
 
 ## Recipes
 
@@ -348,9 +396,18 @@ A change to `deploy/values.yaml` then shows up as a comment like:
 ```
 
 **Inputs** (all optional): `paths` (pathspecs to limit which files are checked),
-`args` (extra confdiff flags, e.g. `--loose --ignore metadata.*`), `base` (ref to
-diff against), `comment` (`true`/`false`, default `true`), `fail-on-diff` (fail the
-job on any semantic change), `github-token`. **Output:** `changed` (`true`/`false`).
+`args` (extra confdiff flags, e.g. `--loose --ignore metadata.*`), `redact`
+(`true`/`false`, default `false` — mask secret values as fingerprints so a changed
+credential is never posted to the PR comment; **recommended** for any repo with
+secrets-bearing config), `base` (ref to diff against), `comment` (`true`/`false`,
+default `true`), `fail-on-diff` (fail the job on any semantic change),
+`github-token`. **Output:** `changed` (`true`/`false`).
+
+```yaml
+      - uses: esperanza-volkov/confdiff@v1
+        with:
+          redact: true          # never leak a changed secret into the PR comment
+```
 
 To gate merges on config changes instead of commenting:
 

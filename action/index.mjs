@@ -131,6 +131,10 @@ async function main() {
   const pathspecs = env("INPUT_PATHS").split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
   const extra = env("INPUT_ARGS").match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
   const stripped = extra.map((a) => a.replace(/^["']|["']$/g, ""));
+  // Redaction is especially important for the Action: a PR comment is public to
+  // everyone with repo read access, so leaking a changed secret value there is a
+  // real incident. `redact: true` masks secret-looking values as fingerprints.
+  if (bool(env("INPUT_REDACT")) && !stripped.includes("--redact")) stripped.push("--redact");
 
   const { files, warn } = changedFiles(base, pathspecs);
 
