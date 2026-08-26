@@ -20,6 +20,19 @@ $ confdiff old.yaml new.yaml
 5 changes: 1 added, 4 changed
 ```
 
+…and it won't leak your secrets into a PR. `--redact` masks secret values as a
+stable fingerprint, so you still see *that* a password or token drifted without
+the value ever landing in a diff, a PR comment, or a CI log:
+
+```console
+$ confdiff prod.env staging.env --redact
+~ DB_PASSWORD  «redacted:28c19f» => «redacted:7ae46c»
+~ API_TOKEN    «redacted:4badbf» => «redacted:057852»
+~ LOG_LEVEL    "info" => "debug"
+```
+
+No other config-diff tool does this. [Jump to Secret-safe diffs →](#secret-safe-diffs---redact)
+
 `git diff` shows you *characters*. `confdiff` shows you *keys and values*. It
 parses each file (JSON, YAML, TOML, INI, `.env`, `.properties`, CSV, XML) into a data model and compares
 the model — so reordered keys, reflowed arrays, changed quoting, added comments
