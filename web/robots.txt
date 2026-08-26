@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://esperanza-volkov.github.io/confdiff/sitemap.xml
