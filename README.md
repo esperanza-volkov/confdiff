@@ -138,12 +138,20 @@ shows semantic output. Pick whichever fits your stack — both beat text diff.
 
 ## Install
 
-Install straight from GitHub (builds on install — requires Node.js ≥ 18):
+**Run it once, no install** (requires Node.js ≥ 18):
+
+```bash
+npx github:esperanza-volkov/confdiff old.yaml new.yaml
+```
+
+**Install the `confdiff` command globally:**
 
 ```bash
 npm install -g github:esperanza-volkov/confdiff
 confdiff old.yaml new.yaml
 ```
+
+Both build from source on install straight from GitHub.
 
 > **Heads up:** confdiff isn't on the npm registry *yet*, so plain
 > `npm install -g confdiff` / `npx confdiff` won't work — use the `github:`
