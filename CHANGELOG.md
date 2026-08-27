@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-08-27
+
+### Added
+
+- **Container image on GHCR.** A tiny, dependency-free image is now published to
+  `ghcr.io/esperanza-volkov/confdiff` on every release, so you can run confdiff
+  without a Node.js install:
+  `docker run --rm -v "$PWD:/work" ghcr.io/esperanza-volkov/confdiff a.yaml b.yaml`.
+  The entrypoint is the CLI, so all flags (`--redact`, `--only`, `--json`, …)
+  work unchanged. Built from a single-file esbuild bundle in a multi-stage build.
+
 ## [0.9.0] - 2026-08-26
 
 ### Added

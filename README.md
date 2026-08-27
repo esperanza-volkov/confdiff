@@ -152,6 +152,19 @@ npm install -g github:esperanza-volkov/confdiff
 
 Requires Node.js ≥ 18.
 
+### No Node? Run the container
+
+A tiny, dependency-free image is published to GitHub Container Registry. Mount
+the directory with your files and pass paths relative to it:
+
+```bash
+docker run --rm -v "$PWD:/work" ghcr.io/esperanza-volkov/confdiff old.yaml new.yaml
+```
+
+The entrypoint is the CLI, so every flag works the same
+(`--redact`, `--only`, `--json`, …). Use `:latest` or pin a version tag
+(`ghcr.io/esperanza-volkov/confdiff:v0.10.0`).
+
 ## Usage
 
 ```

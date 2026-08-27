@@ -1,0 +1,12 @@
+node_modules
+dist
+docs
+web
+action
+test
+examples
+assets
+.git
+.github
+*.md
+!README.md
