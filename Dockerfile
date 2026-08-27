@@ -4,7 +4,9 @@
 FROM node:20-alpine AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
-RUN npm ci
+# --ignore-scripts: skip the `prepare` (tsc) lifecycle hook; we only need deps
+# for the esbuild bundle below, and src/ isn't copied yet.
+RUN npm ci --ignore-scripts
 COPY tsconfig.json ./
 COPY src ./src
 RUN npx esbuild src/cli.ts \
