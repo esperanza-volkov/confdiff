@@ -25,7 +25,7 @@
     "prepare": "npm run build",
     "prepublishOnly": "npm run build",
     "build:action": "esbuild src/cli.ts --bundle --platform=node --target=node20 --format=cjs --outfile=action/confdiff.cjs",
-    "build:web": "esbuild web/entry.ts --bundle --format=iife --platform=browser --target=es2020 --alias:node:path=./web/shims/path.js --outfile=docs/playground.js --minify && cp web/index.html docs/index.html && cp web/app.js docs/app.js && cp web/og.png docs/og.png && cp web/robots.txt docs/robots.txt && cp web/sitemap.xml docs/sitemap.xml && cp web/secrets-in-config-diffs.html docs/secrets-in-config-diffs.html"
+    "build:web": "esbuild web/entry.ts --bundle --format=iife --platform=browser --target=es2020 --alias:node:path=./web/shims/path.js --outfile=docs/playground.js --minify && cp web/index.html docs/index.html && cp web/app.js docs/app.js && cp web/og.png docs/og.png && cp web/robots.txt docs/robots.txt && cp web/sitemap.xml docs/sitemap.xml && cp web/secrets-in-config-diffs.html docs/secrets-in-config-diffs.html && cp web/diff-kubernetes-manifests.html docs/diff-kubernetes-manifests.html"
   },
   "keywords": [
     "diff",
