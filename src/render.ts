@@ -26,8 +26,12 @@ export function renderText(changes: Change[], opts: RenderOptions = {}): string 
   const useColor = opts.color ?? true;
   const c = useColor ? pc : passthrough();
   const redact = opts.redact;
+  // Redact a change if its key looks secret OR either side's value does; mask
+  // both sides together so drift stays visible (differing fingerprints).
+  const isMasked = (ch: Change): boolean =>
+    !!redact && (redact(ch.path, ch.oldValue) || redact(ch.path, ch.newValue));
   const show = (ch: Change, v: unknown): string =>
-    redact && redact(ch.path) ? redactToken(v) : preview(v);
+    isMasked(ch) ? redactToken(v) : preview(v);
 
   if (changes.length === 0) {
     return c.dim("no semantic differences");
@@ -96,7 +100,7 @@ export function renderJson(changes: Change[], opts: { redact?: RedactMatcher } =
       changed: changes.length > 0,
       count: changes.length,
       changes: changes.map((ch) => {
-        const masked = !!(redact && redact(ch.path));
+        const masked = !!(redact && (redact(ch.path, ch.oldValue) || redact(ch.path, ch.newValue)));
         const old = masked ? redactToken(ch.oldValue) : ch.oldValue;
         const nw = masked ? redactToken(ch.newValue) : ch.newValue;
         return {

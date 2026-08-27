@@ -34,7 +34,7 @@ export interface RunResult {
 export function run(
   a: string,
   b: string,
-  opts: { formatA?: Format | "auto"; formatB?: Format | "auto"; loose?: boolean; arraySet?: boolean; redact?: boolean } = {},
+  opts: { formatA?: Format | "auto"; formatB?: Format | "auto"; loose?: boolean; arraySet?: boolean; redact?: boolean; redactEntropy?: boolean } = {},
 ): RunResult {
   try {
     const fa = (opts.formatA && opts.formatA !== "auto" ? opts.formatA : detectFormat(undefined, a)) as Format;
@@ -45,7 +45,7 @@ export function run(
       loose: opts.loose,
       arraySet: opts.arraySet,
     });
-    const redact = opts.redact ? makeRedactMatcher(true, []) : undefined;
+    const redact = opts.redact || opts.redactEntropy ? makeRedactMatcher(true, [], !!opts.redactEntropy) : undefined;
     return { html: renderHtml(changes, redact), json: renderJson(changes, { redact }), count: changes.length, fa, fb };
   } catch (e) {
     return { html: "", json: "", count: 0, error: e instanceof Error ? e.message : String(e) };
@@ -53,8 +53,10 @@ export function run(
 }
 
 function renderHtml(changes: Change[], redact?: RedactMatcher): string {
+  const masked = (ch: Change): boolean =>
+    !!redact && (redact(ch.path, ch.oldValue) || redact(ch.path, ch.newValue));
   const show = (ch: Change, v: unknown): string =>
-    redact && redact(ch.path) ? redactToken(v) : preview(v);
+    masked(ch) ? redactToken(v) : preview(v);
   if (changes.length === 0) return `<div class="cd-none">no semantic differences</div>`;
   let added = 0, removed = 0, changed = 0;
   const rows = changes.map((ch) => {

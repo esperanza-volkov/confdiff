@@ -23,6 +23,7 @@ interface Args {
   csvKey?: string;
   redact: boolean;
   redactKeys: string[];
+  redactEntropy: boolean;
   json: boolean;
   quiet: boolean;
   color?: boolean;
@@ -68,6 +69,8 @@ ${pc.bold("OPTIONS")}
       --redact           Mask secret values (passwords/tokens/keys) as a stable
                          fingerprint — safe to paste a diff into a PR/Slack/CI
       --redact-key <glob> Also redact values at these key/path globs (repeatable)
+      --redact-entropy   Also redact values that LOOK like secrets (long, random,
+                         high-entropy tokens) under any key name; implies --redact
       --array-set        Compare arrays as unordered sets (ignore element order)
       --json             Machine-readable JSON output (for CI / scripts)
   -q, --quiet            No output; communicate via exit code only
@@ -166,6 +169,7 @@ function parseArgs(argv: string[]): Args {
     loose: false,
     redact: false,
     redactKeys: [],
+    redactEntropy: false,
     json: false,
     quiet: false,
     exitZero: false,
@@ -219,6 +223,10 @@ function parseArgs(argv: string[]): Args {
         break;
       case "--redact-key":
         a.redactKeys.push(...next().split(",").map((s) => s.trim()).filter(Boolean));
+        a.redact = true;
+        break;
+      case "--redact-entropy":
+        a.redactEntropy = true;
         a.redact = true;
         break;
       case "--array-set":
@@ -343,7 +351,7 @@ export function main(argv = process.argv.slice(2)): void {
   // Built-in secret heuristics are always active when redaction is on (adding
   // --redact-key extends them). Erring toward over-redaction is safe; the failure
   // mode to avoid is leaking a value the heuristics didn't catch.
-  const redactMatcher = args.redact ? makeRedactMatcher(true, args.redactKeys) : undefined;
+  const redactMatcher = args.redact ? makeRedactMatcher(true, args.redactKeys, args.redactEntropy) : undefined;
 
   if (!args.quiet) {
     if (args.json) {

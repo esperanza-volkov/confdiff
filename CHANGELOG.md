@@ -6,6 +6,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-08-27
+
+### Added
+
+- **`--redact-entropy`: content-based secret detection.** In addition to the
+  key-name heuristics, `--redact` can now mask values that *look* like secrets —
+  long, whitespace-free, high-entropy tokens (API keys, JWTs, base64 blobs) —
+  regardless of their key name. This catches credentials stored under bland keys
+  (`x`, `data`, `value`) that key-name matching misses. It complements, and does
+  not replace, the key-name check: a weak named password (`Letmein`) has low
+  entropy and is still only caught by the key-name rule. Enable both for the
+  widest coverage. Suggested by feedback on
+  [Hacker News](https://news.ycombinator.com/item?id=49464310).
+
 ## [0.10.0] - 2026-08-27
 
 ### Added

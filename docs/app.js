@@ -25,9 +25,9 @@
       b: "DEBUG=true\nPORT=8080\nWORKERS=8\nTIMEOUT=30\n"
     },
     secrets: {
-      fa: "env", fb: "env", redact: true,
-      a: "DB_HOST=db.internal\nDB_PASSWORD=old-pass-123\nAPI_TOKEN=sk_live_aaaa1111\nLOG_LEVEL=info\n",
-      b: "DB_HOST=db.internal\nDB_PASSWORD=new-pass-456\nAPI_TOKEN=sk_live_bbbb2222\nLOG_LEVEL=debug\n"
+      fa: "env", fb: "env", redact: true, redactEntropy: true,
+      a: "DB_HOST=db.internal\nDB_PASSWORD=old-pass-123\nAPI_TOKEN=sk_live_aaaa1111\nSESSION=aB3xZ9qW7kLmNpQ2rTvB1234\nLOG_LEVEL=info\n",
+      b: "DB_HOST=db.internal\nDB_PASSWORD=new-pass-456\nAPI_TOKEN=sk_live_bbbb2222\nSESSION=Zz8Yw7Xv6Uu5Tt4Ss3Rr9988\nLOG_LEVEL=debug\n"
     },
     k8s: {
       fa: "auto", fb: "auto",
@@ -43,6 +43,7 @@
     $("loose").checked = !!e.loose;
     $("arraySet").checked = !!e.arraySet;
     $("redact").checked = !!e.redact;
+    $("redactEntropy").checked = !!e.redactEntropy;
     render();
   }
 
@@ -56,7 +57,8 @@
       fa: faSel.value, fb: fbSel.value,
       l: $("loose").checked ? 1 : 0,
       s: $("arraySet").checked ? 1 : 0,
-      r: $("redact").checked ? 1 : 0
+      r: $("redact").checked ? 1 : 0,
+      re: $("redactEntropy").checked ? 1 : 0
     };
     return b64e(JSON.stringify(st));
   }
@@ -66,7 +68,7 @@
       var st = JSON.parse(b64d(str));
       $("a").value = st.a || ""; $("b").value = st.b || "";
       faSel.value = st.fa || "auto"; fbSel.value = st.fb || "auto";
-      $("loose").checked = !!st.l; $("arraySet").checked = !!st.s; $("redact").checked = !!st.r;
+      $("loose").checked = !!st.l; $("arraySet").checked = !!st.s; $("redact").checked = !!st.r; $("redactEntropy").checked = !!st.re;
       render();
       return true;
     } catch (e) { return false; }
@@ -90,7 +92,7 @@
     if (!a.trim() && !b.trim()) { out.innerHTML = '<span class="cd-none">Paste two configs above, or load an example.</span>'; fmt.textContent = ""; return; }
     var r = window.confdiff.run(a, b, {
       formatA: faSel.value, formatB: fbSel.value,
-      loose: $("loose").checked, arraySet: $("arraySet").checked, redact: $("redact").checked
+      loose: $("loose").checked, arraySet: $("arraySet").checked, redact: $("redact").checked, redactEntropy: $("redactEntropy").checked
     });
     if (r.error) { out.innerHTML = '<span class="cd-err">Error: ' + r.error.replace(/[&<>]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}) + '</span>'; fmt.textContent = ""; return; }
     fmt.textContent = "detected: A = " + r.fa + "  ·  B = " + r.fb;
@@ -98,7 +100,7 @@
   }
 
   ["a","b"].forEach(function (id) { $(id).addEventListener("input", render); });
-  ["fa","fb","loose","arraySet","redact","showjson"].forEach(function (id) { $(id).addEventListener("change", render); });
+  ["fa","fb","loose","arraySet","redact","redactEntropy","showjson"].forEach(function (id) { $(id).addEventListener("change", render); });
   $("ex-yaml").addEventListener("click", function(){ loadExample("yaml"); });
   $("ex-cross").addEventListener("click", function(){ loadExample("cross"); });
   $("ex-env").addEventListener("click", function(){ loadExample("env"); });

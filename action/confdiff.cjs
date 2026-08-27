@@ -12987,13 +12987,34 @@ function looksSecret(seg) {
   }
   return false;
 }
-function makeRedactMatcher(builtins, globs) {
-  return (path) => {
+function shannonEntropy(s) {
+  if (s.length === 0) return 0;
+  const freq = /* @__PURE__ */ new Map();
+  for (const ch of s) freq.set(ch, (freq.get(ch) ?? 0) + 1);
+  let e = 0;
+  for (const n of freq.values()) {
+    const p = n / s.length;
+    e -= p * Math.log2(p);
+  }
+  return e;
+}
+function looksHighEntropy(v) {
+  if (typeof v !== "string") return false;
+  const s = v.trim();
+  if (s.length < 20 || /\s/.test(s)) return false;
+  if (!/^[A-Za-z0-9+/=_.\-:]+$/.test(s)) return false;
+  const classes = Number(/[a-z]/.test(s)) + Number(/[A-Z]/.test(s)) + Number(/[0-9]/.test(s)) + Number(/[+/=_.\-:]/.test(s));
+  if (classes < 2) return false;
+  return shannonEntropy(s) >= 3.5;
+}
+function makeRedactMatcher(builtins, globs, entropy = false) {
+  return (path, value) => {
     if (globs.length && matchAnyGlob(path, globs)) return true;
     if (builtins && path.length > 0) {
       const last = path[path.length - 1];
       if (typeof last === "string" && looksSecret(last)) return true;
     }
+    if (entropy && looksHighEntropy(value)) return true;
     return false;
   };
 }
@@ -13032,7 +13053,8 @@ function renderText(changes, opts = {}) {
   const useColor = opts.color ?? true;
   const c = useColor ? import_picocolors.default : passthrough();
   const redact = opts.redact;
-  const show = (ch, v) => redact && redact(ch.path) ? redactToken(v) : preview(v);
+  const isMasked = (ch) => !!redact && (redact(ch.path, ch.oldValue) || redact(ch.path, ch.newValue));
+  const show = (ch, v) => isMasked(ch) ? redactToken(v) : preview(v);
   if (changes.length === 0) {
     return c.dim("no semantic differences");
   }
@@ -13082,7 +13104,7 @@ function renderJson(changes, opts = {}) {
       changed: changes.length > 0,
       count: changes.length,
       changes: changes.map((ch) => {
-        const masked = !!(redact && redact(ch.path));
+        const masked = !!(redact && (redact(ch.path, ch.oldValue) || redact(ch.path, ch.newValue)));
         const old = masked ? redactToken(ch.oldValue) : ch.oldValue;
         const nw = masked ? redactToken(ch.newValue) : ch.newValue;
         return {
@@ -13214,6 +13236,8 @@ ${import_picocolors2.default.bold("OPTIONS")}
       --redact           Mask secret values (passwords/tokens/keys) as a stable
                          fingerprint \u2014 safe to paste a diff into a PR/Slack/CI
       --redact-key <glob> Also redact values at these key/path globs (repeatable)
+      --redact-entropy   Also redact values that LOOK like secrets (long, random,
+                         high-entropy tokens) under any key name; implies --redact
       --array-set        Compare arrays as unordered sets (ignore element order)
       --json             Machine-readable JSON output (for CI / scripts)
   -q, --quiet            No output; communicate via exit code only
@@ -13312,6 +13336,7 @@ function parseArgs(argv) {
     loose: false,
     redact: false,
     redactKeys: [],
+    redactEntropy: false,
     json: false,
     quiet: false,
     exitZero: false,
@@ -13365,6 +13390,10 @@ function parseArgs(argv) {
         break;
       case "--redact-key":
         a.redactKeys.push(...next().split(",").map((s) => s.trim()).filter(Boolean));
+        a.redact = true;
+        break;
+      case "--redact-entropy":
+        a.redactEntropy = true;
         a.redact = true;
         break;
       case "--array-set":
@@ -13471,7 +13500,7 @@ function main(argv = process.argv.slice(2)) {
     arraySet: args.arraySet,
     loose: args.loose
   });
-  const redactMatcher = args.redact ? makeRedactMatcher(true, args.redactKeys) : void 0;
+  const redactMatcher = args.redact ? makeRedactMatcher(true, args.redactKeys, args.redactEntropy) : void 0;
   if (!args.quiet) {
     if (args.json) {
       process.stdout.write(renderJson(changes, { redact: redactMatcher }) + "\n");

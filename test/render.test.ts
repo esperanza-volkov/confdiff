@@ -114,3 +114,41 @@ test("makeRedactMatcher: custom key glob extends builtins", () => {
   assert.ok(redact(["DB_PASSWORD"])); // builtin still active
   assert.ok(!redact(["username"]));
 });
+
+// --- content-based (entropy) redaction (--redact-entropy) ---
+import { shannonEntropy, looksHighEntropy } from "../src/redact.ts";
+
+test("looksHighEntropy: flags long random tokens, spares ordinary config", () => {
+  // real-secret-shaped values under bland keys
+  assert.ok(looksHighEntropy("AKIA1234567890ABCDEF")); // AWS-key-shaped
+  assert.ok(looksHighEntropy("ghp_EObGxU9RWdFXvXf9NYUeyrO90vdBWv3CHQ")); // token-shaped
+  assert.ok(looksHighEntropy("dGhpcyBpcyBhIHNlY3JldCB2YWx1ZQ==")); // base64 blob
+  // NOT secrets
+  assert.ok(!looksHighEntropy("localhost")); // short, single class
+  assert.ok(!looksHighEntropy("Letmein")); // short weak password (key-name job)
+  assert.ok(!looksHighEntropy("this is a normal sentence value")); // has spaces
+  assert.ok(!looksHighEntropy("aaaaaaaaaaaaaaaaaaaaaaaa")); // long but low entropy
+  assert.ok(!looksHighEntropy("00000000000000000000")); // long but single class
+  assert.ok(!looksHighEntropy(42)); // non-string
+});
+
+test("shannonEntropy: random > repetitive", () => {
+  assert.ok(shannonEntropy("aB3xZ9qW7kLmNpQ2") > shannonEntropy("aaaaaaaaaaaaaaaa"));
+  assert.equal(shannonEntropy(""), 0);
+});
+
+test("--redact-entropy: masks a high-entropy value under a non-secret key", () => {
+  const d = diff({ data: "AKIA1234567890ABCDEF" }, { data: "ZZZZ9999888877776666" });
+  const plain = makeRedactMatcher(true, []); // key-name only: 'data' is not a builtin
+  assert.ok(!plain(["data"], "AKIA1234567890ABCDEF"));
+  const entropy = makeRedactMatcher(true, [], true);
+  const out = renderText(d, { color: false, redact: entropy });
+  assert.match(out, /data\s+«redacted:[0-9a-f]{6}» => «redacted:[0-9a-f]{6}»/);
+});
+
+test("--redact-entropy: leaves ordinary values visible", () => {
+  const d = diff({ host: "localhost", port: 8080 }, { host: "example.com", port: 9090 });
+  const out = renderText(d, { color: false, redact: makeRedactMatcher(true, [], true) });
+  assert.doesNotMatch(out, /«redacted/);
+  assert.match(out, /example\.com/);
+});

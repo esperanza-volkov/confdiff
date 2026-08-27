@@ -185,6 +185,7 @@ Options:
       --csv-key <col>    For CSV/TSV: match rows by this column, not by position
       --redact           Mask secret values (passwords/tokens/keys) as fingerprints
       --redact-key <glob> Also redact values at these key/path globs (repeatable)
+      --redact-entropy   Also redact high-entropy secret-looking values (any key)
       --array-set        Compare arrays as unordered sets
       --json             Machine-readable JSON output
   -q, --quiet            No output; communicate via exit code only
@@ -288,6 +289,15 @@ never reported at all.
 - Add your own with `--redact-key <glob>` (repeatable, comma-separated). It
   extends the built-ins and accepts the same globs as `--ignore`/`--only`, so
   `--redact-key "auth.*"` or a bare key name both work.
+- **`--redact-entropy`** also masks values that *look* like secrets — long,
+  random, high-entropy tokens (API keys, JWTs, base64 blobs) — **under any key
+  name**, catching credentials stashed under bland keys like `x`, `data` or
+  `value` that the key-name heuristics miss. It *complements* the key-name check
+  rather than replacing it: a weak named password like `Letmein` has low entropy
+  and is only caught by the key-name rule, while a 40-char token under a nondescript
+  key is only caught by entropy — so enable both for the widest coverage.
+  (Thanks to the folks on [Hacker News](https://news.ycombinator.com/item?id=49464310)
+  who suggested content-based detection.)
 - `--json` output masks the value too and adds `"redacted": true` on that change.
 
 This is exactly what you want in the [GitHub Action](#github-action--semantic-config-diff-on-your-prs)

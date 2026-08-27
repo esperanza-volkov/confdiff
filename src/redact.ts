@@ -69,22 +69,70 @@ export function looksSecret(seg: string): boolean {
   return false;
 }
 
+/**
+ * Shannon entropy (bits per character) of a string. A uniformly random
+ * high-entropy string (API key, JWT, base64 token) scores high (~4–6);
+ * repetitive or natural-language text scores low.
+ */
+export function shannonEntropy(s: string): number {
+  if (s.length === 0) return 0;
+  const freq = new Map<string, number>();
+  for (const ch of s) freq.set(ch, (freq.get(ch) ?? 0) + 1);
+  let e = 0;
+  for (const n of freq.values()) {
+    const p = n / s.length;
+    e -= p * Math.log2(p);
+  }
+  return e;
+}
+
+/**
+ * Content-based secret heuristic: does a VALUE *look* like a random credential,
+ * regardless of its key name? Catches secrets stored under non-obvious keys
+ * (`x`, `data`, `value`) that the key-name heuristics miss.
+ *
+ * Deliberately conservative to avoid masking ordinary config: only long,
+ * whitespace-free, tokenish strings with high per-character entropy qualify.
+ * This *complements* the key-name heuristics — it does NOT replace them: a
+ * short weak password like `Letmein` under a `password:` key has low entropy
+ * and is only caught by the key-name check, while a 40-char API token under a
+ * bland key is only caught here. Enable both for the widest coverage.
+ */
+export function looksHighEntropy(v: unknown): boolean {
+  if (typeof v !== "string") return false;
+  const s = v.trim();
+  // Secrets are long and contiguous; prose/paths/URLs with spaces are not.
+  if (s.length < 20 || /\s/.test(s)) return false;
+  // Restrict to the character set of tokens/keys/base64/hex (avoids flagging
+  // long prose-y identifiers, sentences joined by punctuation, etc.).
+  if (!/^[A-Za-z0-9+/=_.\-:]+$/.test(s)) return false;
+  // Require a mix of character classes so a long all-lowercase word or a run of
+  // digits (phone/id) isn't mistaken for a random secret.
+  const classes =
+    Number(/[a-z]/.test(s)) + Number(/[A-Z]/.test(s)) + Number(/[0-9]/.test(s)) + Number(/[+/=_.\-:]/.test(s));
+  if (classes < 2) return false;
+  return shannonEntropy(s) >= 3.5;
+}
+
 export interface RedactMatcher {
-  (path: Path): boolean;
+  (path: Path, value?: unknown): boolean;
 }
 
 /**
  * Build a predicate deciding whether a given path's VALUE should be redacted.
  * @param builtins  use the built-in secret-key heuristics
  * @param globs     extra key-name substrings / path globs (matched via matchAnyGlob)
+ * @param entropy   also redact values that *look* like high-entropy secrets,
+ *                  regardless of key name (complements, doesn't replace, the above)
  */
-export function makeRedactMatcher(builtins: boolean, globs: string[]): RedactMatcher {
-  return (path: Path): boolean => {
+export function makeRedactMatcher(builtins: boolean, globs: string[], entropy = false): RedactMatcher {
+  return (path: Path, value?: unknown): boolean => {
     if (globs.length && matchAnyGlob(path, globs)) return true;
     if (builtins && path.length > 0) {
       const last = path[path.length - 1];
       if (typeof last === "string" && looksSecret(last)) return true;
     }
+    if (entropy && looksHighEntropy(value)) return true;
     return false;
   };
 }
