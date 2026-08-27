@@ -480,6 +480,15 @@ Each `Change` is `{ path, kind: "add"|"remove"|"change", oldValue?, newValue?, t
 Comments, whitespace, quoting style, key order, and (optionally) array order are
 all considered non-semantic and never reported.
 
+## Questions & feedback
+
+Have a config file that diffs wrong, a format you'd like added, or a way you use
+confdiff worth sharing? Open a thread in
+**[GitHub Discussions](https://github.com/esperanza-volkov/confdiff/discussions)**
+(Q&A / Ideas / Show and tell) — real-world files that confuse it are the single
+most useful thing you can share. Bugs are best filed as
+[issues](https://github.com/esperanza-volkov/confdiff/issues).
+
 ## Contributing
 
 Issues and pull requests are welcome. Run the test suite with:
