@@ -6,6 +6,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-08-28
+
+### Added
+
+- **`--array-key <field>` — match arrays of objects by a key value instead of by
+  position.** The headline pain when diffing Kubernetes manifests (and many
+  other configs) is that a reordered `env:`, `containers:`, `ports:` or
+  `volumeMounts:` list looks like a huge change even though nothing semantically
+  differs. `--array-key name` matches list-of-object elements by their `name`
+  field, so reordering produces **no** noise and each element is diffed against
+  its same-keyed counterpart, addressed by a readable selector
+  (`containers[name=web].env[name=LOG_LEVEL].value`). A field is only applied
+  where every element on both sides is an object carrying it as a scalar, so one
+  flag keys `env`/`containers` while leaving unrelated arrays indexed; pass more
+  fields (or scope one with `<pathGlob>=<field>`) as needed. If a key value
+  isn't unique on a side, that array safely falls back to positional diffing.
+  The printed `[name=web]` selector round-trips into `--ignore`/`--only`, and
+  the `--json` `path` carries a structured `{ key, value }` segment. Repeatable
+  and comma-separated. No competitor in the same install-footprint (diffx/jd)
+  does keyed semantic list-map matching.
+
 ## [0.12.1] - 2026-08-28
 
 ### Fixed

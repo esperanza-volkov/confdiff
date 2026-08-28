@@ -1,5 +1,5 @@
 import pc from "picocolors";
-import { type Change, formatPath } from "./diff.js";
+import { type Change, formatPath, segStr } from "./diff.js";
 import { redactToken, type RedactMatcher } from "./redact.js";
 
 export interface RenderOptions {
@@ -86,7 +86,7 @@ export function renderText(changes: Change[], opts: RenderOptions = {}): string 
  */
 function toJsonPointer(path: Change["path"]): string {
   return path
-    .map((s) => "/" + String(s).replace(/~/g, "~0").replace(/\//g, "~1"))
+    .map((s) => "/" + segStr(s).replace(/~/g, "~0").replace(/\//g, "~1"))
     .join("");
 }
 

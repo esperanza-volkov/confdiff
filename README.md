@@ -102,6 +102,11 @@ each on a single line with a clear path, old value, and new value.
 - **Loose mode** (`-l`) treats `"3"`/`3` and `"true"`/`true` as equal — ideal
   for `.env`/INI where everything is a string.
 - **Unordered arrays** (`--array-set`) when list order is not significant.
+- **Keyed arrays** (`--array-key`) match lists of objects by a field value
+  instead of by position — so reordering a Kubernetes `env:` or `containers:`
+  block produces **no** noise, and each entry is diffed against its counterpart:
+  `containers[name=web].env[name=LOG_LEVEL].value`. See
+  [Keyed arrays](#keyed-arrays-list-maps).
 - **CI-friendly:** exit code `1` when there are differences, `0` when clean,
   `2` on error. Machine-readable `--json` output. Reads from stdin (`-`).
 - Zero-config, fast, and dependency-light. Works as a library too.
@@ -193,6 +198,10 @@ Options:
   -i, --ignore <glob>    Ignore paths matching glob (repeatable / comma-separated)
   -o, --only <glob>      Only compare paths matching glob (repeatable)
   -l, --loose            Loose scalars: "3"==3, "true"==true
+      --array-set        Compare arrays as unordered sets (ignore element order)
+      --array-key <spec> Match arrays of objects by a key field, not by position
+                         (e.g. k8s env/containers): --array-key name, or scope
+                         with <pathGlob>=<field>. Repeatable / comma-separated.
       --csv-key <col>    For CSV/TSV: match rows by this column, not by position
       --redact           Mask secret values (passwords/tokens/keys) as fingerprints
       --redact-key <glob> Also redact values at these key/path globs (repeatable)
@@ -268,6 +277,31 @@ Scalar text and attribute values are type-coerced, so `<port>80</port>` compares
 equal to a JSON `"port": 80` — cross-format works for XML too (diff a legacy
 `config.xml` against the `config.yaml` it became). Use `--loose` if you'd rather
 not coerce. Malformed XML fails cleanly with exit code `2`.
+
+### Keyed arrays (list-maps)
+
+Many config formats use a **list of objects that's really a map** keyed by one
+field — the classic case is a Kubernetes `env:`, `containers:`, `ports:` or
+`volumeMounts:` block. Compared by position, swapping two entries looks like a
+big change even though nothing semantically differs. `--array-key <field>` (or
+a comma-separated / repeated list) tells confdiff to match those elements by the
+field's **value**:
+
+```console
+$ confdiff old-deploy.yaml new-deploy.yaml --array-key name
+~ spec.replicas                                     3 => 4
+~ spec.template.spec.containers[name=web].image     "nginx:1.25" => "nginx:1.26"
+~ spec.template.spec.containers[name=web].env[name=LOG_LEVEL].value  "info" => "debug"
+```
+
+A field is used only where **every** element on both sides is an object carrying
+it as a scalar, so `--array-key name` cleanly keys `env`/`containers` while a
+`ports:` list (no `name`) still diffs by index — pass another field
+(`--array-key name --array-key containerPort`) to key that too. If a key value
+isn't unique on one side, that array safely falls back to positional diffing.
+Scope a key to one array with `<pathGlob>=<field>` (e.g.
+`--array-key spec.template.spec.containers=name`). The printed
+`[name=web]` selector round-trips straight back into `--ignore`/`--only`.
 
 ### Directory diff
 

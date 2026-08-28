@@ -1,4 +1,24 @@
-export type Path = (string | number)[];
+/** A keyed-array selector segment, e.g. `containers[name=web]`. Produced when
+ * `--array-key` matches list-of-object elements by a field value instead of by
+ * positional index, so reordering a list doesn't create phantom diffs. */
+export interface KeySeg {
+  key: string;
+  value: string | number | boolean | null;
+}
+
+export type PathSeg = string | number | KeySeg;
+export type Path = PathSeg[];
+
+export function isKeySeg(s: PathSeg): s is KeySeg {
+  return typeof s === "object" && s !== null && "key" in s && "value" in s;
+}
+
+/** Canonical string form of a single path segment (used for glob matching and
+ * pointers): keyed segments render as `key=value`, everything else as-is. */
+export function segStr(s: PathSeg): string {
+  if (isKeySeg(s)) return `${s.key}=${String(s.value)}`;
+  return String(s);
+}
 
 export type ChangeKind = "add" | "remove" | "change";
 
@@ -20,6 +40,16 @@ export interface DiffOptions {
   only?: string[];
   /** Compare arrays as unordered multisets instead of by index. */
   arraySet?: boolean;
+  /**
+   * Match arrays of objects by a key field's value instead of by position, so
+   * reordering a list (e.g. a k8s `env:` or `containers:` block) produces no
+   * noise and each element is diffed against its same-keyed counterpart.
+   * Each entry is a bare field name (`name`) applied wherever every element is
+   * an object carrying that field, or a scoped `pathGlob=field` mapping. The
+   * first applicable entry wins; if a field's values aren't unique on a side,
+   * that array falls back to indexed comparison.
+   */
+  arrayKey?: string[];
   /**
    * Loose scalar comparison: coerce string<->number<->boolean so that
    * "3" == 3 and "true" == true. Handy for INI/.env where all values are strings.
@@ -63,6 +93,7 @@ function pathToString(path: Path): string {
   let out = "";
   for (const seg of path) {
     if (typeof seg === "number") out += `[${seg}]`;
+    else if (isKeySeg(seg)) out += `[${seg.key}=${String(seg.value)}]`;
     else if (out === "") out = seg;
     else out += `.${seg}`;
   }
@@ -117,7 +148,7 @@ function splitPattern(pattern: string): string[] {
 /** Match a path against a glob pattern. `*` = one segment, `**` = zero-or-more segments; within a segment `*`/`?` are wildcards (e.g. `*_SECRET`). Array indices may be written `foo[0]`/`foo[*]` or `foo.0`/`foo.*`. */
 function matchGlob(pattern: string, path: Path): boolean {
   const pats = splitPattern(pattern);
-  const segs = path.map((s) => String(s));
+  const segs = path.map(segStr);
   // simple recursive matcher supporting **
   const rec = (pi: number, si: number): boolean => {
     if (pi === pats.length) return si === segs.length;
@@ -165,7 +196,7 @@ export function matchAnyGlob(path: Path, patterns: string[]): boolean {
     if (matchGlob(p, path)) return true;
     // bare key name -> match that last segment anywhere
     if (!p.includes(".") && !p.includes("[") && path.length > 0) {
-      if (segMatch(p, String(path[path.length - 1]))) return true;
+      if (segMatch(p, segStr(path[path.length - 1]))) return true;
     }
   }
   return false;
@@ -252,10 +283,15 @@ function walk(a: unknown, b: unknown, path: Path, out: Change[], opts: DiffOptio
   }
 
   if (ta === "array" && tb === "array") {
-    if (opts.arraySet) {
-      diffArraySet(a as unknown[], b as unknown[], path, out, opts);
+    const av = a as unknown[];
+    const bv = b as unknown[];
+    const keyField = opts.arrayKey && opts.arrayKey.length > 0 ? resolveArrayKey(path, av, bv, opts.arrayKey) : undefined;
+    if (keyField) {
+      diffArrayKeyed(av, bv, path, out, opts, keyField);
+    } else if (opts.arraySet) {
+      diffArraySet(av, bv, path, out, opts);
     } else {
-      diffArrayIndexed(a as unknown[], b as unknown[], path, out, opts);
+      diffArrayIndexed(av, bv, path, out, opts);
     }
     return;
   }
@@ -286,6 +322,100 @@ function diffArrayIndexed(a: unknown[], b: unknown[], path: Path, out: Change[],
       if (pathSelected(childPath, opts)) out.push({ path: childPath, kind: "add", newValue: b[i] });
     } else {
       walk(a[i], b[i], childPath, out, opts);
+    }
+  }
+}
+
+/** Is `v` a plain object that carries a scalar-valued `field`? */
+function keyableBy(v: unknown, field: string): boolean {
+  if (!isPlainObject(v)) return false;
+  const rec = v as Record<string, unknown>;
+  if (!Object.prototype.hasOwnProperty.call(rec, field)) return false;
+  const fv = rec[field];
+  return fv === null || (typeof fv !== "object" && typeof fv !== "function");
+}
+
+/**
+ * Decide which key field (if any) to use for matching this pair of arrays.
+ * Tries each configured entry in order: scoped `pathGlob=field` entries whose
+ * glob matches this array's path, plus bare `field` entries that apply
+ * everywhere. A field is usable only when EVERY element on both sides is a plain
+ * object carrying that field as a scalar AND its values are unique within each
+ * side (otherwise keying would be ambiguous, so we fall back to indexed diff).
+ */
+function resolveArrayKey(path: Path, a: unknown[], b: unknown[], specs: string[]): string | undefined {
+  if (a.length === 0 && b.length === 0) return undefined;
+  const candidates: string[] = [];
+  for (const spec of specs) {
+    const eq = spec.indexOf("=");
+    if (eq >= 0) {
+      const glob = spec.slice(0, eq);
+      const field = spec.slice(eq + 1);
+      if (field && matchGlob(glob, path)) candidates.push(field);
+    } else if (spec) {
+      candidates.push(spec);
+    }
+  }
+  for (const field of candidates) {
+    const all = [...a, ...b];
+    if (!all.every((v) => keyableBy(v, field))) continue;
+    if (uniqueKeyed(a, field) && uniqueKeyed(b, field)) return field;
+  }
+  return undefined;
+}
+
+function uniqueKeyed(arr: unknown[], field: string): boolean {
+  const seen = new Set<string>();
+  for (const v of arr) {
+    const k = valueKey((v as Record<string, unknown>)[field]);
+    if (seen.has(k)) return false;
+    seen.add(k);
+  }
+  return true;
+}
+
+function diffArrayKeyed(
+  a: unknown[],
+  b: unknown[],
+  path: Path,
+  out: Change[],
+  opts: DiffOptions,
+  field: string,
+): void {
+  const mapA = new Map<string, unknown>();
+  const mapB = new Map<string, unknown>();
+  const order: string[] = [];
+  const raw = new Map<string, unknown>();
+  for (const v of a) {
+    const fv = (v as Record<string, unknown>)[field];
+    const k = valueKey(fv);
+    mapA.set(k, v);
+    if (!raw.has(k)) {
+      raw.set(k, fv);
+      order.push(k);
+    }
+  }
+  for (const v of b) {
+    const fv = (v as Record<string, unknown>)[field];
+    const k = valueKey(fv);
+    mapB.set(k, v);
+    if (!raw.has(k)) {
+      raw.set(k, fv);
+      order.push(k);
+    }
+  }
+  for (const k of order) {
+    const fv = raw.get(k);
+    const seg: KeySeg = { key: field, value: fv as KeySeg["value"] };
+    const childPath = [...path, seg];
+    const inA = mapA.has(k);
+    const inB = mapB.has(k);
+    if (inA && inB) {
+      walk(mapA.get(k), mapB.get(k), childPath, out, opts);
+    } else if (inA) {
+      if (pathSelected(childPath, opts)) out.push({ path: childPath, kind: "remove", oldValue: mapA.get(k) });
+    } else {
+      if (pathSelected(childPath, opts)) out.push({ path: childPath, kind: "add", newValue: mapB.get(k) });
     }
   }
 }

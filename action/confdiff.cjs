@@ -7658,6 +7658,13 @@ var import_node_path4 = require("node:path");
 var import_picocolors2 = __toESM(require_picocolors(), 1);
 
 // src/diff.ts
+function isKeySeg(s) {
+  return typeof s === "object" && s !== null && "key" in s && "value" in s;
+}
+function segStr(s) {
+  if (isKeySeg(s)) return `${s.key}=${String(s.value)}`;
+  return String(s);
+}
 function typeOf(v) {
   if (v === null) return "null";
   if (Array.isArray(v)) return "array";
@@ -7685,6 +7692,7 @@ function pathToString(path) {
   let out = "";
   for (const seg of path) {
     if (typeof seg === "number") out += `[${seg}]`;
+    else if (isKeySeg(seg)) out += `[${seg.key}=${String(seg.value)}]`;
     else if (out === "") out = seg;
     else out += `.${seg}`;
   }
@@ -7722,7 +7730,7 @@ function splitPattern(pattern) {
 }
 function matchGlob(pattern, path) {
   const pats = splitPattern(pattern);
-  const segs = path.map((s) => String(s));
+  const segs = path.map(segStr);
   const rec = (pi, si) => {
     if (pi === pats.length) return si === segs.length;
     if (pats[pi] === "**") {
@@ -7752,7 +7760,7 @@ function matchAnyGlob(path, patterns) {
   for (const p of patterns) {
     if (matchGlob(p, path)) return true;
     if (!p.includes(".") && !p.includes("[") && path.length > 0) {
-      if (segMatch(p, String(path[path.length - 1]))) return true;
+      if (segMatch(p, segStr(path[path.length - 1]))) return true;
     }
   }
   return false;
@@ -7824,10 +7832,15 @@ function walk(a, b, path, out, opts) {
     return;
   }
   if (ta === "array" && tb === "array") {
-    if (opts.arraySet) {
-      diffArraySet(a, b, path, out, opts);
+    const av = a;
+    const bv = b;
+    const keyField = opts.arrayKey && opts.arrayKey.length > 0 ? resolveArrayKey(path, av, bv, opts.arrayKey) : void 0;
+    if (keyField) {
+      diffArrayKeyed(av, bv, path, out, opts, keyField);
+    } else if (opts.arraySet) {
+      diffArraySet(av, bv, path, out, opts);
     } else {
-      diffArrayIndexed(a, b, path, out, opts);
+      diffArrayIndexed(av, bv, path, out, opts);
     }
     return;
   }
@@ -7852,6 +7865,80 @@ function diffArrayIndexed(a, b, path, out, opts) {
       if (pathSelected(childPath, opts)) out.push({ path: childPath, kind: "add", newValue: b[i] });
     } else {
       walk(a[i], b[i], childPath, out, opts);
+    }
+  }
+}
+function keyableBy(v, field) {
+  if (!isPlainObject(v)) return false;
+  const rec = v;
+  if (!Object.prototype.hasOwnProperty.call(rec, field)) return false;
+  const fv = rec[field];
+  return fv === null || typeof fv !== "object" && typeof fv !== "function";
+}
+function resolveArrayKey(path, a, b, specs) {
+  if (a.length === 0 && b.length === 0) return void 0;
+  const candidates = [];
+  for (const spec of specs) {
+    const eq = spec.indexOf("=");
+    if (eq >= 0) {
+      const glob = spec.slice(0, eq);
+      const field = spec.slice(eq + 1);
+      if (field && matchGlob(glob, path)) candidates.push(field);
+    } else if (spec) {
+      candidates.push(spec);
+    }
+  }
+  for (const field of candidates) {
+    const all = [...a, ...b];
+    if (!all.every((v) => keyableBy(v, field))) continue;
+    if (uniqueKeyed(a, field) && uniqueKeyed(b, field)) return field;
+  }
+  return void 0;
+}
+function uniqueKeyed(arr, field) {
+  const seen = /* @__PURE__ */ new Set();
+  for (const v of arr) {
+    const k = valueKey(v[field]);
+    if (seen.has(k)) return false;
+    seen.add(k);
+  }
+  return true;
+}
+function diffArrayKeyed(a, b, path, out, opts, field) {
+  const mapA = /* @__PURE__ */ new Map();
+  const mapB = /* @__PURE__ */ new Map();
+  const order = [];
+  const raw = /* @__PURE__ */ new Map();
+  for (const v of a) {
+    const fv = v[field];
+    const k = valueKey(fv);
+    mapA.set(k, v);
+    if (!raw.has(k)) {
+      raw.set(k, fv);
+      order.push(k);
+    }
+  }
+  for (const v of b) {
+    const fv = v[field];
+    const k = valueKey(fv);
+    mapB.set(k, v);
+    if (!raw.has(k)) {
+      raw.set(k, fv);
+      order.push(k);
+    }
+  }
+  for (const k of order) {
+    const fv = raw.get(k);
+    const seg = { key: field, value: fv };
+    const childPath = [...path, seg];
+    const inA = mapA.has(k);
+    const inB = mapB.has(k);
+    if (inA && inB) {
+      walk(mapA.get(k), mapB.get(k), childPath, out, opts);
+    } else if (inA) {
+      if (pathSelected(childPath, opts)) out.push({ path: childPath, kind: "remove", oldValue: mapA.get(k) });
+    } else {
+      if (pathSelected(childPath, opts)) out.push({ path: childPath, kind: "add", newValue: mapB.get(k) });
     }
   }
 }
@@ -13101,7 +13188,7 @@ function renderText(changes, opts = {}) {
   return lines.join("\n");
 }
 function toJsonPointer(path) {
-  return path.map((s) => "/" + String(s).replace(/~/g, "~0").replace(/\//g, "~1")).join("");
+  return path.map((s) => "/" + segStr(s).replace(/~/g, "~0").replace(/\//g, "~1")).join("");
 }
 function renderJson(changes, opts = {}) {
   const bigIntSafe = (_k, v) => typeof v === "bigint" ? v.toString() : v;
@@ -13259,6 +13346,7 @@ function dirDiff(dirA, dirB, opts = {}) {
     ignore: opts.ignore,
     only: opts.only,
     arraySet: opts.arraySet,
+    arrayKey: opts.arrayKey,
     loose: opts.loose
   };
   const files = [];
@@ -13331,6 +13419,9 @@ ${import_picocolors2.default.bold("OPTIONS")}
       --redact-entropy   Also redact values that LOOK like secrets (long, random,
                          high-entropy tokens) under any key name; implies --redact
       --array-set        Compare arrays as unordered sets (ignore element order)
+      --array-key <spec> Match arrays of objects by a key field, not by position
+                         (k8s env/containers): --array-key name; scope with
+                         <pathGlob>=<field>, repeatable / comma-separated
       --json             Machine-readable JSON output (for CI / scripts)
   -q, --quiet            No output; communicate via exit code only
       --no-color         Disable ANSI color
@@ -13425,6 +13516,7 @@ function parseArgs(argv) {
     ignore: [],
     only: [],
     arraySet: false,
+    arrayKey: [],
     loose: false,
     redact: false,
     redactKeys: [],
@@ -13490,6 +13582,9 @@ function parseArgs(argv) {
         break;
       case "--array-set":
         a.arraySet = true;
+        break;
+      case "--array-key":
+        a.arrayKey.push(...next().split(",").map((s) => s.trim()).filter(Boolean));
         break;
       case "--json":
         a.json = true;
@@ -13633,6 +13728,7 @@ function main(argv = process.argv.slice(2)) {
         ignore: args.ignore,
         only: args.only,
         arraySet: args.arraySet,
+        arrayKey: args.arrayKey,
         loose: args.loose,
         csvKey: args.csvKey
       });
@@ -13681,6 +13777,7 @@ function main(argv = process.argv.slice(2)) {
     ignore: args.ignore,
     only: args.only,
     arraySet: args.arraySet,
+    arrayKey: args.arrayKey,
     loose: args.loose
   });
   const redactMatcher = args.redact ? makeRedactMatcher(true, args.redactKeys, args.redactEntropy) : void 0;

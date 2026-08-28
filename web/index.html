@@ -115,6 +115,7 @@
   <div class="controls">
     <label><input type="checkbox" id="loose" /> loose scalars (<code>"80"</code> == <code>80</code>)</label>
     <label><input type="checkbox" id="arraySet" /> arrays as sets (ignore order)</label>
+    <label title="Match arrays of objects by their name field (k8s env/containers) instead of by position — reordering stops being noise"><input type="checkbox" id="arrayKeyName" /> match arrays by <code>name</code> (k8s)</label>
     <label title="Mask secret values (passwords/tokens/keys) as fingerprints — share a diff without leaking credentials"><input type="checkbox" id="redact" /> 🔒 redact secrets</label>
     <label title="Also mask high-entropy secret-looking values (API keys, tokens) under any key name"><input type="checkbox" id="redactEntropy" /> + by entropy</label>
     <label><input type="checkbox" id="showjson" /> show JSON output</label>

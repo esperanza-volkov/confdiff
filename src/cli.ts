@@ -21,6 +21,7 @@ interface Args {
   ignore: string[];
   only: string[];
   arraySet: boolean;
+  arrayKey: string[];
   loose: boolean;
   csvKey?: string;
   redact: boolean;
@@ -75,6 +76,9 @@ ${pc.bold("OPTIONS")}
       --redact-entropy   Also redact values that LOOK like secrets (long, random,
                          high-entropy tokens) under any key name; implies --redact
       --array-set        Compare arrays as unordered sets (ignore element order)
+      --array-key <spec> Match arrays of objects by a key field, not by position
+                         (k8s env/containers): --array-key name; scope with
+                         <pathGlob>=<field>, repeatable / comma-separated
       --json             Machine-readable JSON output (for CI / scripts)
   -q, --quiet            No output; communicate via exit code only
       --no-color         Disable ANSI color
@@ -169,6 +173,7 @@ function parseArgs(argv: string[]): Args {
     ignore: [],
     only: [],
     arraySet: false,
+    arrayKey: [],
     loose: false,
     redact: false,
     redactKeys: [],
@@ -234,6 +239,9 @@ function parseArgs(argv: string[]): Args {
         break;
       case "--array-set":
         a.arraySet = true;
+        break;
+      case "--array-key":
+        a.arrayKey.push(...next().split(",").map((s) => s.trim()).filter(Boolean));
         break;
       case "--json":
         a.json = true;
@@ -404,6 +412,7 @@ export function main(argv = process.argv.slice(2)): void {
         ignore: args.ignore,
         only: args.only,
         arraySet: args.arraySet,
+        arrayKey: args.arrayKey,
         loose: args.loose,
         csvKey: args.csvKey,
       });
@@ -459,6 +468,7 @@ export function main(argv = process.argv.slice(2)): void {
     ignore: args.ignore,
     only: args.only,
     arraySet: args.arraySet,
+    arrayKey: args.arrayKey,
     loose: args.loose,
   });
 

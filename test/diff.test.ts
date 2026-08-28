@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { diff } from "../src/diff.ts";
+import { diff, formatPath } from "../src/diff.ts";
 import { compare } from "../src/index.ts";
 
 test("no changes on identical objects", () => {
@@ -286,4 +286,60 @@ test("diff: equal BigInts produce no change", () => {
 test("diff: BigInt inside array-set comparison keys correctly", () => {
   const d = diff({ ids: [12345678901234567890n, 2] }, { ids: [2, 12345678901234567890n] }, { arraySet: true });
   assert.equal(d.length, 0);
+});
+
+test("arrayKey: reordered list-of-objects matched by name (no phantom diffs)", () => {
+  const a = { env: [{ name: "A", value: "1" }, { name: "B", value: "2" }] };
+  const b = { env: [{ name: "B", value: "2" }, { name: "A", value: "1" }] };
+  assert.deepEqual(diff(a, b, { arrayKey: ["name"] }), []);
+});
+
+test("arrayKey: value change reported against the same-keyed element", () => {
+  const a = { env: [{ name: "A", value: "1" }, { name: "B", value: "2" }] };
+  const b = { env: [{ name: "B", value: "9" }, { name: "A", value: "1" }] };
+  const d = diff(a, b, { arrayKey: ["name"] });
+  assert.equal(d.length, 1);
+  assert.equal(d[0].kind, "change");
+  assert.equal(formatPath(d[0].path), "env[name=B].value");
+  assert.equal(d[0].oldValue, "2");
+  assert.equal(d[0].newValue, "9");
+});
+
+test("arrayKey: added and removed elements keyed", () => {
+  const a = { env: [{ name: "A", value: "1" }] };
+  const b = { env: [{ name: "C", value: "3" }] };
+  const d = diff(a, b, { arrayKey: ["name"] });
+  const s = d.map((c) => `${c.kind}:${formatPath(c.path)}`).sort();
+  assert.deepEqual(s, ["add:env[name=C]", "remove:env[name=A]"]);
+});
+
+test("arrayKey: not applicable when an element lacks the field (falls back to indexed)", () => {
+  const a = { ports: [{ containerPort: 80 }, { containerPort: 443 }] };
+  const b = { ports: [{ containerPort: 443 }, { containerPort: 80 }] };
+  // `name` doesn't exist on ports -> indexed diff -> reorder is noise
+  assert.equal(diff(a, b, { arrayKey: ["name"] }).length, 2);
+  // but keying by containerPort collapses it
+  assert.equal(diff(a, b, { arrayKey: ["containerPort"] }).length, 0);
+});
+
+test("arrayKey: duplicate key values on a side fall back to indexed (safe)", () => {
+  const a = { env: [{ name: "A", value: "1" }, { name: "A", value: "2" }] };
+  const b = { env: [{ name: "A", value: "1" }, { name: "A", value: "9" }] };
+  const d = diff(a, b, { arrayKey: ["name"] });
+  assert.equal(d.length, 1);
+  assert.equal(formatPath(d[0].path), "env[1].value");
+});
+
+test("arrayKey: scoped pathGlob=field only keys the matching array", () => {
+  const a = { items: [{ id: "x", n: 1 }, { id: "y", n: 2 }] };
+  const b = { items: [{ id: "y", n: 2 }, { id: "x", n: 1 }] };
+  assert.deepEqual(diff(a, b, { arrayKey: ["items=id"] }), []);
+  // a non-matching scope leaves it indexed
+  assert.equal(diff(a, b, { arrayKey: ["other=id"] }).length > 0, true);
+});
+
+test("arrayKey: printed keyed path round-trips into ignore", () => {
+  const a = { env: [{ name: "A", value: "1" }] };
+  const b = { env: [{ name: "A", value: "2" }] };
+  assert.deepEqual(diff(a, b, { arrayKey: ["name"], ignore: ["env[name=A].value"] }), []);
 });

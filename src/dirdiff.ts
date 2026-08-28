@@ -102,6 +102,7 @@ export function dirDiff(
     ignore: opts.ignore,
     only: opts.only,
     arraySet: opts.arraySet,
+    arrayKey: opts.arrayKey,
     loose: opts.loose,
   };
 

@@ -30,9 +30,9 @@
       b: "DB_HOST=db.internal\nDB_PASSWORD=new-pass-456\nAPI_TOKEN=sk_live_bbbb2222\nSESSION=Zz8Yw7Xv6Uu5Tt4Ss3Rr9988\nLOG_LEVEL=debug\n"
     },
     k8s: {
-      fa: "auto", fb: "auto",
-      a: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api\n  labels:\n    app: api\nspec:\n  replicas: 2\n  template:\n    spec:\n      containers:\n        - name: api\n          image: registry/api:1.4.0\n          resources:\n            limits:\n              cpu: \"500m\"\n              memory: 256Mi\n          env:\n            - name: LOG_LEVEL\n              value: info\n",
-      b: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api\n  labels:\n    app: api\nspec:\n  replicas: 4\n  template:\n    spec:\n      containers:\n        - name: api\n          image: registry/api:1.5.2\n          resources:\n            limits:\n              cpu: \"1000m\"\n              memory: 256Mi\n          env:\n            - name: LOG_LEVEL\n              value: warn\n"
+      fa: "auto", fb: "auto", arrayKey: true,
+      a: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api\n  labels:\n    app: api\nspec:\n  replicas: 2\n  template:\n    spec:\n      containers:\n        - name: api\n          image: registry/api:1.4.0\n          env:\n            - name: LOG_LEVEL\n              value: info\n            - name: TZ\n              value: UTC\n",
+      b: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api\n  labels:\n    app: api\nspec:\n  replicas: 4\n  template:\n    spec:\n      containers:\n        - name: api\n          image: registry/api:1.5.2\n          env:\n            - name: TZ\n              value: UTC\n            - name: LOG_LEVEL\n              value: warn\n"
     }
   };
 
@@ -42,6 +42,7 @@
     faSel.value = e.fa || "auto"; fbSel.value = e.fb || "auto";
     $("loose").checked = !!e.loose;
     $("arraySet").checked = !!e.arraySet;
+    $("arrayKeyName").checked = !!e.arrayKey;
     $("redact").checked = !!e.redact;
     $("redactEntropy").checked = !!e.redactEntropy;
     render();
@@ -57,6 +58,7 @@
       fa: faSel.value, fb: fbSel.value,
       l: $("loose").checked ? 1 : 0,
       s: $("arraySet").checked ? 1 : 0,
+      k: $("arrayKeyName").checked ? 1 : 0,
       r: $("redact").checked ? 1 : 0,
       re: $("redactEntropy").checked ? 1 : 0
     };
@@ -68,7 +70,7 @@
       var st = JSON.parse(b64d(str));
       $("a").value = st.a || ""; $("b").value = st.b || "";
       faSel.value = st.fa || "auto"; fbSel.value = st.fb || "auto";
-      $("loose").checked = !!st.l; $("arraySet").checked = !!st.s; $("redact").checked = !!st.r; $("redactEntropy").checked = !!st.re;
+      $("loose").checked = !!st.l; $("arraySet").checked = !!st.s; $("arrayKeyName").checked = !!st.k; $("redact").checked = !!st.r; $("redactEntropy").checked = !!st.re;
       render();
       return true;
     } catch (e) { return false; }
@@ -92,7 +94,7 @@
     if (!a.trim() && !b.trim()) { out.innerHTML = '<span class="cd-none">Paste two configs above, or load an example.</span>'; fmt.textContent = ""; return; }
     var r = window.confdiff.run(a, b, {
       formatA: faSel.value, formatB: fbSel.value,
-      loose: $("loose").checked, arraySet: $("arraySet").checked, redact: $("redact").checked, redactEntropy: $("redactEntropy").checked
+      loose: $("loose").checked, arraySet: $("arraySet").checked, arrayKey: $("arrayKeyName").checked ? ["name"] : undefined, redact: $("redact").checked, redactEntropy: $("redactEntropy").checked
     });
     if (r.error) { out.innerHTML = '<span class="cd-err">Error: ' + r.error.replace(/[&<>]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}) + '</span>'; fmt.textContent = ""; return; }
     fmt.textContent = "detected: A = " + r.fa + "  ·  B = " + r.fb;
@@ -100,7 +102,7 @@
   }
 
   ["a","b"].forEach(function (id) { $(id).addEventListener("input", render); });
-  ["fa","fb","loose","arraySet","redact","redactEntropy","showjson"].forEach(function (id) { $(id).addEventListener("change", render); });
+  ["fa","fb","loose","arraySet","arrayKeyName","redact","redactEntropy","showjson"].forEach(function (id) { $(id).addEventListener("change", render); });
   $("ex-yaml").addEventListener("click", function(){ loadExample("yaml"); });
   $("ex-cross").addEventListener("click", function(){ loadExample("cross"); });
   $("ex-env").addEventListener("click", function(){ loadExample("env"); });

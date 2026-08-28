@@ -34,7 +34,7 @@ export interface RunResult {
 export function run(
   a: string,
   b: string,
-  opts: { formatA?: Format | "auto"; formatB?: Format | "auto"; loose?: boolean; arraySet?: boolean; redact?: boolean; redactEntropy?: boolean } = {},
+  opts: { formatA?: Format | "auto"; formatB?: Format | "auto"; loose?: boolean; arraySet?: boolean; arrayKey?: string[]; redact?: boolean; redactEntropy?: boolean } = {},
 ): RunResult {
   try {
     const fa = (opts.formatA && opts.formatA !== "auto" ? opts.formatA : detectFormat(undefined, a)) as Format;
@@ -44,6 +44,7 @@ export function run(
       formatB: fb,
       loose: opts.loose,
       arraySet: opts.arraySet,
+      arrayKey: opts.arrayKey,
     });
     const redact = opts.redact || opts.redactEntropy ? makeRedactMatcher(true, [], !!opts.redactEntropy) : undefined;
     return { html: renderHtml(changes, redact), json: renderJson(changes, { redact }), count: changes.length, fa, fb };
