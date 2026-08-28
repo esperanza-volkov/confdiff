@@ -13284,7 +13284,9 @@ function dirDiff(dirA, dirB, opts = {}) {
       files.push({ path: rel, status: "error", error: e.message });
     }
   }
-  return { files, changed: files.length > 0 };
+  const errored = files.some((f) => f.status === "error");
+  const changed = files.some((f) => f.status !== "error");
+  return { files, changed, errored };
 }
 
 // src/cli.ts
@@ -13538,7 +13540,7 @@ function renderDirText(result, color, redact) {
     return dim("no semantic changes across the two directories") + "\n";
   }
   let out = "";
-  let added = 0, removed = 0, changed = 0;
+  let added = 0, removed = 0, changed = 0, skipped = 0;
   for (const f of result.files) {
     if (f.status === "added") {
       added++;
@@ -13551,6 +13553,7 @@ function renderDirText(result, color, redact) {
       out += `${mark}${b(f.path)} ${dim("(deleted)")}
 `;
     } else if (f.status === "error") {
+      skipped++;
       const mark = c ? c.yellow("! ") : "! ";
       out += `${mark}${b(f.path)} ${dim(`(skipped: ${f.error})`)}
 `;
@@ -13568,6 +13571,7 @@ function renderDirText(result, color, redact) {
   if (changed) parts.push(`${changed} changed`);
   if (added) parts.push(`${added} added`);
   if (removed) parts.push(`${removed} removed`);
+  if (skipped) parts.push(`${skipped} skipped (parse error)`);
   out += "\n" + b(`${result.files.length} file(s): ` + parts.join(", ")) + "\n";
   return out;
 }
@@ -13580,7 +13584,11 @@ function renderDirJson(result, redact) {
     }
     return base;
   });
-  return JSON.stringify({ changed: result.changed, files }, null, 2);
+  return JSON.stringify(
+    { changed: result.changed, errored: result.errored, files },
+    null,
+    2
+  );
 }
 function main(argv = process.argv.slice(2)) {
   if (argv[0] === "install-git-driver") {
@@ -13639,7 +13647,9 @@ function main(argv = process.argv.slice(2)) {
         process.stdout.write(renderDirText(result, !!color, redactMatcherDir));
       }
     }
-    process.exit(args.exitZero ? 0 : result.changed ? 1 : 0);
+    process.exit(
+      args.exitZero ? 0 : result.errored ? 2 : result.changed ? 1 : 0
+    );
   }
   const rawA = readInput(fileA);
   const rawB = readInput(fileB);

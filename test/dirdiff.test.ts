@@ -88,3 +88,33 @@ test("ignore globs apply across the tree", () => {
   rmSync(a, { recursive: true, force: true });
   rmSync(b, { recursive: true, force: true });
 });
+
+test("unparseable file on one side reports an error and sets errored", () => {
+  const a = scratch();
+  const b = scratch();
+  // 'x: 1' is valid YAML but INVALID JSON — with a .json extension it must fail.
+  writeFileSync(join(a, "broken.json"), "x: 1\n");
+  writeFileSync(join(b, "broken.json"), "x: 2\n");
+  writeFileSync(join(a, "good.json"), '{"ok":1}');
+  writeFileSync(join(b, "good.json"), '{"ok":2}');
+  const res = dirDiff(a, b);
+  const err = res.files.find((f) => f.path === "broken.json");
+  assert.equal(err?.status, "error");
+  assert.ok(err?.error && err.error.length > 0);
+  assert.equal(res.errored, true);
+  assert.equal(res.changed, true); // good.json still changed
+  rmSync(a, { recursive: true, force: true });
+  rmSync(b, { recursive: true, force: true });
+});
+
+test("errored is false when every file parses cleanly", () => {
+  const a = scratch();
+  const b = scratch();
+  writeFileSync(join(a, "c.yaml"), "k: 1\n");
+  writeFileSync(join(b, "c.yaml"), "k: 2\n");
+  const res = dirDiff(a, b);
+  assert.equal(res.errored, false);
+  assert.equal(res.changed, true);
+  rmSync(a, { recursive: true, force: true });
+  rmSync(b, { recursive: true, force: true });
+});

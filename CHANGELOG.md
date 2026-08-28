@@ -6,6 +6,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-08-28
+
+### Fixed
+
+- **Directory diff now surfaces unparseable files as a hard error (exit 2),**
+  matching single-file semantics. Previously a config file that failed to parse
+  on one/both sides while diffing two directories was silently downgraded to the
+  "differences found" exit code (1), so a malformed file in a CI tree diff could
+  be mistaken for an ordinary change. The `! file (skipped: …)` line is now
+  counted in the summary (`… , 1 skipped (parse error)`), the exit code is `2`
+  when any file fails to parse, and the `--json` report carries a top-level
+  `errored` boolean. `--exit-zero` (and the git driver) still force `0`.
+
 ## [0.12.0] - 2026-08-28
 
 ### Added

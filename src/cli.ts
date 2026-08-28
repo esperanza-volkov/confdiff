@@ -292,7 +292,8 @@ function renderDirText(
   let out = "";
   let added = 0,
     removed = 0,
-    changed = 0;
+    changed = 0,
+    skipped = 0;
   for (const f of result.files) {
     if (f.status === "added") {
       added++;
@@ -303,6 +304,7 @@ function renderDirText(
       const mark = c ? c.red("- ") : "- ";
       out += `${mark}${b(f.path)} ${dim("(deleted)")}\n`;
     } else if (f.status === "error") {
+      skipped++;
       const mark = c ? c.yellow("! ") : "! ";
       out += `${mark}${b(f.path)} ${dim(`(skipped: ${f.error})`)}\n`;
     } else {
@@ -321,6 +323,7 @@ function renderDirText(
   if (changed) parts.push(`${changed} changed`);
   if (added) parts.push(`${added} added`);
   if (removed) parts.push(`${removed} removed`);
+  if (skipped) parts.push(`${skipped} skipped (parse error)`);
   out += "\n" + b(`${result.files.length} file(s): ` + parts.join(", ")) + "\n";
   return out;
 }
@@ -337,7 +340,11 @@ function renderDirJson(
     }
     return base;
   });
-  return JSON.stringify({ changed: result.changed, files }, null, 2);
+  return JSON.stringify(
+    { changed: result.changed, errored: result.errored, files },
+    null,
+    2,
+  );
 }
 
 export function main(argv = process.argv.slice(2)): void {
@@ -411,7 +418,12 @@ export function main(argv = process.argv.slice(2)): void {
         process.stdout.write(renderDirText(result, !!color, redactMatcherDir));
       }
     }
-    process.exit(args.exitZero ? 0 : result.changed ? 1 : 0);
+    // Exit-code precedence matches single-file mode: a parse/read error is a
+    // hard failure (2), differences are 1, a clean tree is 0. --exit-zero (and
+    // the git driver) still forces 0.
+    process.exit(
+      args.exitZero ? 0 : result.errored ? 2 : result.changed ? 1 : 0,
+    );
   }
   const rawA = readInput(fileA);
   const rawB = readInput(fileB);

@@ -22,8 +22,10 @@ export interface FileEntry {
 
 export interface DirDiffResult {
   files: FileEntry[];
-  /** True if anything (added/removed/changed/error) was found. */
+  /** True if any added/removed/changed file was found. */
   changed: boolean;
+  /** True if any file could not be parsed on one/both sides (exit 2). */
+  errored: boolean;
 }
 
 export interface DirDiffOptions extends DiffOptions {
@@ -128,5 +130,7 @@ export function dirDiff(
     }
   }
 
-  return { files, changed: files.length > 0 };
+  const errored = files.some((f) => f.status === "error");
+  const changed = files.some((f) => f.status !== "error");
+  return { files, changed, errored };
 }
