@@ -8,6 +8,8 @@ import { parseContent, keyRowsByColumn, detectFormat, type Format } from "./pars
 import { renderText, renderJson } from "./render.js";
 import { makeRedactMatcher } from "./redact.js";
 import { installGitDriver, DEFAULT_PATTERNS } from "./gitdriver.js";
+import { isDirectory, dirDiff, type DirDiffResult } from "./dirdiff.js";
+import type { RedactMatcher } from "./redact.js";
 
 const FORMATS: Format[] = ["json", "yaml", "toml", "ini", "env", "properties", "csv", "xml"];
 
@@ -51,6 +53,7 @@ ${pc.bold("USAGE")}
   confdiff config.json config.yaml        # cross-format compare
   confdiff old.csv new.csv --csv-key id   # match CSV rows by a key column
   confdiff old.xml new.xml                # semantic XML (order-insensitive)
+  confdiff old-manifests/ new-manifests/  # recurse: diff every config file in a tree
   cat a.env | confdiff - b.env --format env
 
 ${pc.bold("OUTPUT")}
@@ -275,6 +278,68 @@ function readInput(file: string): string {
   }
 }
 
+function renderDirText(
+  result: DirDiffResult,
+  color: boolean,
+  redact: RedactMatcher | undefined,
+): string {
+  const c = color ? pc : undefined;
+  const b = (s: string) => (c ? c.bold(s) : s);
+  const dim = (s: string) => (c ? c.dim(s) : s);
+  if (result.files.length === 0) {
+    return dim("no semantic changes across the two directories") + "\n";
+  }
+  let out = "";
+  let added = 0,
+    removed = 0,
+    changed = 0;
+  for (const f of result.files) {
+    if (f.status === "added") {
+      added++;
+      const mark = c ? c.green("+ ") : "+ ";
+      out += `${mark}${b(f.path)} ${dim("(new file)")}\n`;
+    } else if (f.status === "removed") {
+      removed++;
+      const mark = c ? c.red("- ") : "- ";
+      out += `${mark}${b(f.path)} ${dim("(deleted)")}\n`;
+    } else if (f.status === "error") {
+      const mark = c ? c.yellow("! ") : "! ";
+      out += `${mark}${b(f.path)} ${dim(`(skipped: ${f.error})`)}\n`;
+    } else {
+      changed++;
+      const mark = c ? c.yellow("~ ") : "~ ";
+      out += `${mark}${b(f.path)}\n`;
+      const body = renderText(f.changes ?? [], { color, redact });
+      out += body
+        .split("\n")
+        .map((l) => (l ? "    " + l : l))
+        .join("\n");
+      out += "\n";
+    }
+  }
+  const parts: string[] = [];
+  if (changed) parts.push(`${changed} changed`);
+  if (added) parts.push(`${added} added`);
+  if (removed) parts.push(`${removed} removed`);
+  out += "\n" + b(`${result.files.length} file(s): ` + parts.join(", ")) + "\n";
+  return out;
+}
+
+function renderDirJson(
+  result: DirDiffResult,
+  redact: RedactMatcher | undefined,
+): string {
+  const files = result.files.map((f) => {
+    const base: Record<string, unknown> = { path: f.path, status: f.status };
+    if (f.status === "error") base.error = f.error;
+    if (f.status === "changed" && f.changes) {
+      base.changes = JSON.parse(renderJson(f.changes, { redact }));
+    }
+    return base;
+  });
+  return JSON.stringify({ changed: result.changed, files }, null, 2);
+}
+
 export function main(argv = process.argv.slice(2)): void {
   if (argv[0] === "install-git-driver") {
     runInstall(argv.slice(1));
@@ -311,6 +376,43 @@ export function main(argv = process.argv.slice(2)): void {
   if (args.files.length !== 2) fail(`expected exactly 2 inputs, got ${args.files.length}`);
 
   const [fileA, fileB] = args.files;
+
+  // Directory-vs-directory: recursively diff matching config files by relative path.
+  const aIsDir = isDirectory(fileA);
+  const bIsDir = isDirectory(fileB);
+  if (aIsDir || bIsDir) {
+    if (!(aIsDir && bIsDir)) {
+      fail(
+        `both inputs must be directories to diff a tree (got ${
+          aIsDir ? "a directory and a file" : "a file and a directory"
+        })`,
+      );
+    }
+    const redactMatcherDir = args.redact
+      ? makeRedactMatcher(true, args.redactKeys, args.redactEntropy)
+      : undefined;
+    let result: DirDiffResult;
+    try {
+      result = dirDiff(fileA, fileB, {
+        ignore: args.ignore,
+        only: args.only,
+        arraySet: args.arraySet,
+        loose: args.loose,
+        csvKey: args.csvKey,
+      });
+    } catch (e) {
+      fail((e as Error).message);
+    }
+    if (!args.quiet) {
+      if (args.json) {
+        process.stdout.write(renderDirJson(result, redactMatcherDir) + "\n");
+      } else {
+        const color = args.color ?? (process.stdout.isTTY && !process.env.NO_COLOR);
+        process.stdout.write(renderDirText(result, !!color, redactMatcherDir));
+      }
+    }
+    process.exit(args.exitZero ? 0 : result.changed ? 1 : 0);
+  }
   const rawA = readInput(fileA);
   const rawB = readInput(fileB);
 

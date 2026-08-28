@@ -75,6 +75,17 @@ const EXT_MAP: Record<string, Format> = {
   ".xsd": "xml",
 };
 
+/** Extensions confdiff recognizes as structured-config files (for directory diffs). */
+export const KNOWN_EXTENSIONS: readonly string[] = Object.keys(EXT_MAP);
+
+/** True if a bare filename looks like a config file confdiff can parse by extension. */
+export function isConfigFilename(name: string): boolean {
+  const base = name.toLowerCase();
+  if (base === ".env" || base.startsWith(".env.")) return true;
+  const ext = extname(base);
+  return !!(ext && EXT_MAP[ext]);
+}
+
 /** Detect the format from a filename, falling back to content sniffing. */
 export function detectFormat(filename: string | undefined, content: string): Format {
   if (filename) {

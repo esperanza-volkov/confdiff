@@ -6,6 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-08-28
+
+### Added
+
+- **Directory (whole-tree) diff.** Pass two *directories*
+  (`confdiff old/ new/`) and confdiff recursively pairs config files by their
+  relative path and reports, per file, whether it was added, removed, or
+  semantically changed. Only recognized config extensions (JSON, YAML, TOML,
+  INI, `.env`, `.properties`, CSV, XML) are considered; `.git/` and
+  `node_modules/` are pruned. All existing options apply across the tree:
+  `--ignore`/`--only` globs, `--redact`/`--redact-entropy`, `--loose`,
+  `--array-set`, `--csv-key`, and a structured `--json` report
+  (`{ changed, files: [...] }`). Exit code `1` if anything differs, `0` if the
+  trees are semantically identical, `2` if only one input is a directory. This
+  makes it easy to diff two rendered Helm outputs, two environments' config
+  trees, or before/after `kubectl get -o yaml` dumps without text-diff noise.
+
 ## [0.11.0] - 2026-08-27
 
 ### Added

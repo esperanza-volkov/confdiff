@@ -69,6 +69,12 @@ each on a single line with a clear path, old value, and new value.
   content sniffing as a fallback.
 - **Cross-format compare:** diff a `config.json` against its migrated
   `config.yaml` and confirm they're equivalent.
+- **Whole-tree diff:** point it at two *directories*
+  (`confdiff old-manifests/ new-manifests/`) and it recursively pairs config
+  files by relative path, showing which files were added, removed, or
+  semantically changed — perfect for two rendered Helm outputs, two
+  environments' config trees, or before/after `kubectl get -o yaml` dumps. See
+  [Directory diff](#directory-diff).
 - **Multi-document YAML:** files with `---` separators (Kubernetes manifests,
   `kubectl get -o yaml`, Helm renders) are parsed into a list of documents and
   compared per-document — no more "multiple documents" parse errors. Cosmetic
@@ -262,6 +268,36 @@ Scalar text and attribute values are type-coerced, so `<port>80</port>` compares
 equal to a JSON `"port": 80` — cross-format works for XML too (diff a legacy
 `config.xml` against the `config.yaml` it became). Use `--loose` if you'd rather
 not coerce. Malformed XML fails cleanly with exit code `2`.
+
+### Directory diff
+
+Give confdiff two **directories** and it walks both trees, pairs up config files
+by their relative path, and shows a per-file semantic diff — which files were
+added, removed, or actually changed (reordered keys, reformatting, and comment
+churn are ignored just like the single-file case):
+
+```console
+$ confdiff env/staging/ env/prod/
+~ deploy.yaml
+    ~ replicas       2 => 5
+    ~ image          "app:1.4.0" => "app:1.4.1"
++ feature-flags.json (new file)
+- legacy.ini (deleted)
+
+3 file(s): 1 changed, 1 added, 1 removed
+```
+
+Only files with a recognized config extension are considered (JSON, YAML, TOML,
+INI, `.env`, `.properties`, CSV, XML); everything else — `README.md`, binaries,
+lockfiles — is skipped, and `.git/` and `node_modules/` are pruned. Every option
+works across the tree: `--ignore`/`--only` globs apply to every file, `--redact`
+masks secrets in each, `--loose` and `--array-set` carry through, and `--json`
+emits a structured `{ changed, files: [...] }` report for CI. Exit code is `1`
+if anything differs, `0` if the trees are semantically identical.
+
+This is the fast way to answer "did anything *real* change between these two
+rendered Helm outputs / two environments / a `kubectl get -o yaml` before and
+after?" without wading through text-diff noise file by file.
 
 ### Secret-safe diffs (`--redact`)
 

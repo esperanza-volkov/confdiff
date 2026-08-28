@@ -4068,10 +4068,10 @@ var require_resolve_block_map = __commonJS({
       let offset = bm.offset;
       let commentEnd = null;
       for (const collItem of bm.items) {
-        const { start, key, sep: sep2, value } = collItem;
+        const { start, key, sep: sep3, value } = collItem;
         const keyProps = resolveProps.resolveProps(start, {
           indicator: "explicit-key-ind",
-          next: key ?? sep2?.[0],
+          next: key ?? sep3?.[0],
           offset,
           onError,
           parentIndent: bm.indent,
@@ -4085,7 +4085,7 @@ var require_resolve_block_map = __commonJS({
             else if ("indent" in key && key.indent !== bm.indent)
               onError(offset, "BAD_INDENT", startColMsg);
           }
-          if (!keyProps.anchor && !keyProps.tag && !sep2) {
+          if (!keyProps.anchor && !keyProps.tag && !sep3) {
             commentEnd = keyProps.end;
             if (keyProps.comment) {
               if (map.comment)
@@ -4109,7 +4109,7 @@ var require_resolve_block_map = __commonJS({
         ctx.atKey = false;
         if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
           onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-        const valueProps = resolveProps.resolveProps(sep2 ?? [], {
+        const valueProps = resolveProps.resolveProps(sep3 ?? [], {
           indicator: "map-value-ind",
           next: value,
           offset: keyNode.range[2],
@@ -4125,7 +4125,7 @@ var require_resolve_block_map = __commonJS({
             if (ctx.options.strict && keyProps.start < valueProps.found.offset - 1024)
               onError(keyNode.range, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit block mapping key");
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep2, null, valueProps, onError);
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep3, null, valueProps, onError);
           if (ctx.schema.compat)
             utilFlowIndentCheck.flowIndentCheck(bm.indent, value, onError);
           offset = valueNode.range[2];
@@ -4216,7 +4216,7 @@ var require_resolve_end = __commonJS({
       let comment = "";
       if (end) {
         let hasSpace = false;
-        let sep2 = "";
+        let sep3 = "";
         for (const token of end) {
           const { source, type } = token;
           switch (type) {
@@ -4230,13 +4230,13 @@ var require_resolve_end = __commonJS({
               if (!comment)
                 comment = cb;
               else
-                comment += sep2 + cb;
-              sep2 = "";
+                comment += sep3 + cb;
+              sep3 = "";
               break;
             }
             case "newline":
               if (comment)
-                sep2 += source;
+                sep3 += source;
               hasSpace = true;
               break;
             default:
@@ -4279,18 +4279,18 @@ var require_resolve_flow_collection = __commonJS({
       let offset = fc.offset + fc.start.source.length;
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
-        const { start, key, sep: sep2, value } = collItem;
+        const { start, key, sep: sep3, value } = collItem;
         const props = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
-          next: key ?? sep2?.[0],
+          next: key ?? sep3?.[0],
           offset,
           onError,
           parentIndent: fc.indent,
           startOnNewline: false
         });
         if (!props.found) {
-          if (!props.anchor && !props.tag && !sep2 && !value) {
+          if (!props.anchor && !props.tag && !sep3 && !value) {
             if (i === 0 && props.comma)
               onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
             else if (i < fc.items.length - 1)
@@ -4344,8 +4344,8 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap && !sep2 && !props.found) {
-          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep2, null, props, onError);
+        if (!isMap && !sep3 && !props.found) {
+          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep3, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
           if (isBlock(value))
@@ -4357,7 +4357,7 @@ var require_resolve_flow_collection = __commonJS({
           if (isBlock(key))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
-          const valueProps = resolveProps.resolveProps(sep2 ?? [], {
+          const valueProps = resolveProps.resolveProps(sep3 ?? [], {
             flow: fcName,
             indicator: "map-value-ind",
             next: value,
@@ -4368,8 +4368,8 @@ var require_resolve_flow_collection = __commonJS({
           });
           if (valueProps.found) {
             if (!isMap && !props.found && ctx.options.strict) {
-              if (sep2)
-                for (const st of sep2) {
+              if (sep3)
+                for (const st of sep3) {
                   if (st === valueProps.found)
                     break;
                   if (st.type === "newline") {
@@ -4386,7 +4386,7 @@ var require_resolve_flow_collection = __commonJS({
             else
               onError(valueProps.start, "MISSING_CHAR", `Missing , or : between ${fcName} items`);
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep2, null, valueProps, onError) : null;
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep3, null, valueProps, onError) : null;
           if (valueNode) {
             if (isBlock(value))
               onError(valueNode.range, "BLOCK_IN_FLOW", blockMsg);
@@ -4566,7 +4566,7 @@ var require_resolve_block_scalar = __commonJS({
           chompStart = i + 1;
       }
       let value = "";
-      let sep2 = "";
+      let sep3 = "";
       let prevMoreIndented = false;
       for (let i = 0; i < contentStart; ++i)
         value += lines[i][0].slice(trimIndent) + "\n";
@@ -4583,24 +4583,24 @@ var require_resolve_block_scalar = __commonJS({
           indent = "";
         }
         if (type === Scalar.Scalar.BLOCK_LITERAL) {
-          value += sep2 + indent.slice(trimIndent) + content;
-          sep2 = "\n";
+          value += sep3 + indent.slice(trimIndent) + content;
+          sep3 = "\n";
         } else if (indent.length > trimIndent || content[0] === "	") {
-          if (sep2 === " ")
-            sep2 = "\n";
-          else if (!prevMoreIndented && sep2 === "\n")
-            sep2 = "\n\n";
-          value += sep2 + indent.slice(trimIndent) + content;
-          sep2 = "\n";
+          if (sep3 === " ")
+            sep3 = "\n";
+          else if (!prevMoreIndented && sep3 === "\n")
+            sep3 = "\n\n";
+          value += sep3 + indent.slice(trimIndent) + content;
+          sep3 = "\n";
           prevMoreIndented = true;
         } else if (content === "") {
-          if (sep2 === "\n")
+          if (sep3 === "\n")
             value += "\n";
           else
-            sep2 = "\n";
+            sep3 = "\n";
         } else {
-          value += sep2 + content;
-          sep2 = " ";
+          value += sep3 + content;
+          sep3 = " ";
           prevMoreIndented = false;
         }
       }
@@ -4782,25 +4782,25 @@ var require_resolve_flow_scalar = __commonJS({
       if (!match)
         return source;
       let res = match[1];
-      let sep2 = " ";
+      let sep3 = " ";
       let pos = first.lastIndex;
       line.lastIndex = pos;
       while (match = line.exec(source)) {
         if (match[1] === "") {
-          if (sep2 === "\n")
-            res += sep2;
+          if (sep3 === "\n")
+            res += sep3;
           else
-            sep2 = "\n";
+            sep3 = "\n";
         } else {
-          res += sep2 + match[1];
-          sep2 = " ";
+          res += sep3 + match[1];
+          sep3 = " ";
         }
         pos = line.lastIndex;
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
       match = last.exec(source);
-      return res + sep2 + (match?.[1] ?? "");
+      return res + sep3 + (match?.[1] ?? "");
     }
     function doubleQuotedValue(source, onError) {
       let res = "";
@@ -5610,14 +5610,14 @@ var require_cst_stringify = __commonJS({
         }
       }
     }
-    function stringifyItem({ start, key, sep: sep2, value }) {
+    function stringifyItem({ start, key, sep: sep3, value }) {
       let res = "";
       for (const st of start)
         res += st.source;
       if (key)
         res += stringifyToken(key);
-      if (sep2)
-        for (const st of sep2)
+      if (sep3)
+        for (const st of sep3)
           res += st.source;
       if (value)
         res += stringifyToken(value);
@@ -6784,18 +6784,18 @@ var require_parser = __commonJS({
         if (this.type === "map-value-ind") {
           const prev = getPrevProps(this.peek(2));
           const start = getFirstKeyStartProps(prev);
-          let sep2;
+          let sep3;
           if (scalar.end) {
-            sep2 = scalar.end;
-            sep2.push(this.sourceToken);
+            sep3 = scalar.end;
+            sep3.push(this.sourceToken);
             delete scalar.end;
           } else
-            sep2 = [this.sourceToken];
+            sep3 = [this.sourceToken];
           const map = {
             type: "block-map",
             offset: scalar.offset,
             indent: scalar.indent,
-            items: [{ start, key: scalar, sep: sep2 }]
+            items: [{ start, key: scalar, sep: sep3 }]
           };
           this.onKeyLine = true;
           this.stack[this.stack.length - 1] = map;
@@ -6948,15 +6948,15 @@ var require_parser = __commonJS({
                 } else if (isFlowToken(it.key) && !includesToken(it.sep, "newline")) {
                   const start2 = getFirstKeyStartProps(it.start);
                   const key = it.key;
-                  const sep2 = it.sep;
-                  sep2.push(this.sourceToken);
+                  const sep3 = it.sep;
+                  sep3.push(this.sourceToken);
                   delete it.key;
                   delete it.sep;
                   this.stack.push({
                     type: "block-map",
                     offset: this.offset,
                     indent: this.indent,
-                    items: [{ start: start2, key, sep: sep2 }]
+                    items: [{ start: start2, key, sep: sep3 }]
                   });
                 } else if (start.length > 0) {
                   it.sep = it.sep.concat(start, this.sourceToken);
@@ -7150,13 +7150,13 @@ var require_parser = __commonJS({
             const prev = getPrevProps(parent);
             const start = getFirstKeyStartProps(prev);
             fixFlowSeqItems(fc);
-            const sep2 = fc.end.splice(1, fc.end.length);
-            sep2.push(this.sourceToken);
+            const sep3 = fc.end.splice(1, fc.end.length);
+            sep3.push(this.sourceToken);
             const map = {
               type: "block-map",
               offset: fc.offset,
               indent: fc.indent,
-              items: [{ start, key: fc, sep: sep2 }]
+              items: [{ start, key: fc, sep: sep3 }]
             };
             this.onKeyLine = true;
             this.stack[this.stack.length - 1] = map;
@@ -7652,9 +7652,9 @@ __export(cli_exports, {
   main: () => main
 });
 module.exports = __toCommonJS(cli_exports);
-var import_node_fs2 = require("node:fs");
+var import_node_fs3 = require("node:fs");
 var import_node_url = require("node:url");
-var import_node_path3 = require("node:path");
+var import_node_path4 = require("node:path");
 var import_picocolors2 = __toESM(require_picocolors(), 1);
 
 // src/diff.ts
@@ -8211,7 +8211,7 @@ function skipVoid(str, ptr, banNewLines, banComments) {
   }
   return ptr;
 }
-function skipUntil(str, ptr, sep2, end, banNewLines = false) {
+function skipUntil(str, ptr, sep3, end, banNewLines = false) {
   if (!end) {
     ptr = indexOfNewline(str, ptr);
     return ptr < 0 ? str.length : ptr;
@@ -8220,7 +8220,7 @@ function skipUntil(str, ptr, sep2, end, banNewLines = false) {
     let c = str[i];
     if (c === "#") {
       i = indexOfNewline(str, i);
-    } else if (c === sep2) {
+    } else if (c === sep3) {
       return i + 1;
     } else if (c === end || banNewLines && (c === "\n" || c === "\r" && str[i + 1] === "\n")) {
       return i;
@@ -10929,21 +10929,21 @@ var Matcher = class {
    * @returns {string}
    */
   toString(separator, includeNamespace = true) {
-    const sep2 = separator || this.separator;
-    const isDefault = sep2 === this.separator && includeNamespace === true;
+    const sep3 = separator || this.separator;
+    const isDefault = sep3 === this.separator && includeNamespace === true;
     if (isDefault) {
       if (this._pathStringCache !== null) {
         return this._pathStringCache;
       }
       const result = this.path.map(
         (n) => n.namespace ? `${n.namespace}:${n.tag}` : n.tag
-      ).join(sep2);
+      ).join(sep3);
       this._pathStringCache = result;
       return result;
     }
     return this.path.map(
       (n) => includeNamespace && n.namespace ? `${n.namespace}:${n.tag}` : n.tag
-    ).join(sep2);
+    ).join(sep3);
   }
   /**
    * Get path as array of tag names.
@@ -12648,6 +12648,13 @@ var EXT_MAP = {
   ".plist": "xml",
   ".xsd": "xml"
 };
+var KNOWN_EXTENSIONS = Object.keys(EXT_MAP);
+function isConfigFilename(name) {
+  const base = name.toLowerCase();
+  if (base === ".env" || base.startsWith(".env.")) return true;
+  const ext = (0, import_node_path.extname)(base);
+  return !!(ext && EXT_MAP[ext]);
+}
 function detectFormat(filename, content) {
   if (filename) {
     const base = filename.toLowerCase();
@@ -13198,13 +13205,95 @@ function installGitDriver(opts) {
   };
 }
 
+// src/dirdiff.ts
+var import_node_fs2 = require("node:fs");
+var import_node_path3 = require("node:path");
+function isDirectory(p) {
+  if (p === "-") return false;
+  try {
+    return (0, import_node_fs2.statSync)(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
+function collectConfigFiles(root) {
+  const found = /* @__PURE__ */ new Set();
+  const walk2 = (dir) => {
+    let entries;
+    try {
+      entries = (0, import_node_fs2.readdirSync)(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      const name = e.name;
+      if (e.isDirectory()) {
+        if (name === ".git" || name === "node_modules") continue;
+        walk2((0, import_node_path3.join)(dir, name));
+      } else if (e.isFile() || e.isSymbolicLink()) {
+        if (isConfigFilename(name)) {
+          const rel = (0, import_node_path3.relative)(root, (0, import_node_path3.join)(dir, name)).split(import_node_path3.sep).join("/");
+          found.add(rel);
+        }
+      }
+    }
+  };
+  walk2(root);
+  return found;
+}
+function loadValue(absPath, relPath, csvKey) {
+  const raw = (0, import_node_fs2.readFileSync)(absPath, "utf8");
+  const fmt = detectFormat(relPath, raw);
+  let val = parseContent(raw, fmt);
+  if (csvKey && fmt === "csv") {
+    val = keyRowsByColumn(val, csvKey);
+  }
+  return val;
+}
+function dirDiff(dirA, dirB, opts = {}) {
+  const filesA = collectConfigFiles(dirA);
+  const filesB = collectConfigFiles(dirB);
+  const all = /* @__PURE__ */ new Set([...filesA, ...filesB]);
+  const sorted = [...all].sort();
+  const diffOpts = {
+    ignore: opts.ignore,
+    only: opts.only,
+    arraySet: opts.arraySet,
+    loose: opts.loose
+  };
+  const files = [];
+  for (const rel of sorted) {
+    const inA = filesA.has(rel);
+    const inB = filesB.has(rel);
+    if (inA && !inB) {
+      files.push({ path: rel, status: "removed" });
+      continue;
+    }
+    if (!inA && inB) {
+      files.push({ path: rel, status: "added" });
+      continue;
+    }
+    try {
+      const valA = loadValue((0, import_node_path3.join)(dirA, rel), rel, opts.csvKey);
+      const valB = loadValue((0, import_node_path3.join)(dirB, rel), rel, opts.csvKey);
+      const changes = diff(valA, valB, diffOpts);
+      if (changes.length > 0) {
+        files.push({ path: rel, status: "changed", changes });
+      }
+    } catch (e) {
+      files.push({ path: rel, status: "error", error: e.message });
+    }
+  }
+  return { files, changed: files.length > 0 };
+}
+
 // src/cli.ts
 var import_meta = {};
 var FORMATS = ["json", "yaml", "toml", "ini", "env", "properties", "csv", "xml"];
 function getVersion() {
   try {
-    const here = (0, import_node_path3.dirname)((0, import_node_url.fileURLToPath)(import_meta.url));
-    const pkg = JSON.parse((0, import_node_fs2.readFileSync)((0, import_node_path3.join)(here, "..", "package.json"), "utf8"));
+    const here = (0, import_node_path4.dirname)((0, import_node_url.fileURLToPath)(import_meta.url));
+    const pkg = JSON.parse((0, import_node_fs3.readFileSync)((0, import_node_path4.join)(here, "..", "package.json"), "utf8"));
     return pkg.version ?? "0.0.0";
   } catch {
     return "0.0.0";
@@ -13218,6 +13307,7 @@ ${import_picocolors2.default.bold("USAGE")}
   confdiff config.json config.yaml        # cross-format compare
   confdiff old.csv new.csv --csv-key id   # match CSV rows by a key column
   confdiff old.xml new.xml                # semantic XML (order-insensitive)
+  confdiff old-manifests/ new-manifests/  # recurse: diff every config file in a tree
   cat a.env | confdiff - b.env --format env
 
 ${import_picocolors2.default.bold("OUTPUT")}
@@ -13433,12 +13523,64 @@ function parseArgs(argv) {
   return a;
 }
 function readInput(file) {
-  if (file === "-") return (0, import_node_fs2.readFileSync)(0, "utf8");
+  if (file === "-") return (0, import_node_fs3.readFileSync)(0, "utf8");
   try {
-    return (0, import_node_fs2.readFileSync)(file, "utf8");
+    return (0, import_node_fs3.readFileSync)(file, "utf8");
   } catch (e) {
     fail(`cannot read "${file}": ${e.message}`);
   }
+}
+function renderDirText(result, color, redact) {
+  const c = color ? import_picocolors2.default : void 0;
+  const b = (s) => c ? c.bold(s) : s;
+  const dim = (s) => c ? c.dim(s) : s;
+  if (result.files.length === 0) {
+    return dim("no semantic changes across the two directories") + "\n";
+  }
+  let out = "";
+  let added = 0, removed = 0, changed = 0;
+  for (const f of result.files) {
+    if (f.status === "added") {
+      added++;
+      const mark = c ? c.green("+ ") : "+ ";
+      out += `${mark}${b(f.path)} ${dim("(new file)")}
+`;
+    } else if (f.status === "removed") {
+      removed++;
+      const mark = c ? c.red("- ") : "- ";
+      out += `${mark}${b(f.path)} ${dim("(deleted)")}
+`;
+    } else if (f.status === "error") {
+      const mark = c ? c.yellow("! ") : "! ";
+      out += `${mark}${b(f.path)} ${dim(`(skipped: ${f.error})`)}
+`;
+    } else {
+      changed++;
+      const mark = c ? c.yellow("~ ") : "~ ";
+      out += `${mark}${b(f.path)}
+`;
+      const body = renderText(f.changes ?? [], { color, redact });
+      out += body.split("\n").map((l) => l ? "    " + l : l).join("\n");
+      out += "\n";
+    }
+  }
+  const parts = [];
+  if (changed) parts.push(`${changed} changed`);
+  if (added) parts.push(`${added} added`);
+  if (removed) parts.push(`${removed} removed`);
+  out += "\n" + b(`${result.files.length} file(s): ` + parts.join(", ")) + "\n";
+  return out;
+}
+function renderDirJson(result, redact) {
+  const files = result.files.map((f) => {
+    const base = { path: f.path, status: f.status };
+    if (f.status === "error") base.error = f.error;
+    if (f.status === "changed" && f.changes) {
+      base.changes = JSON.parse(renderJson(f.changes, { redact }));
+    }
+    return base;
+  });
+  return JSON.stringify({ changed: result.changed, files }, null, 2);
 }
 function main(argv = process.argv.slice(2)) {
   if (argv[0] === "install-git-driver") {
@@ -13468,10 +13610,41 @@ function main(argv = process.argv.slice(2)) {
   }
   if (args.files.length !== 2) fail(`expected exactly 2 inputs, got ${args.files.length}`);
   const [fileA, fileB] = args.files;
+  const aIsDir = isDirectory(fileA);
+  const bIsDir = isDirectory(fileB);
+  if (aIsDir || bIsDir) {
+    if (!(aIsDir && bIsDir)) {
+      fail(
+        `both inputs must be directories to diff a tree (got ${aIsDir ? "a directory and a file" : "a file and a directory"})`
+      );
+    }
+    const redactMatcherDir = args.redact ? makeRedactMatcher(true, args.redactKeys, args.redactEntropy) : void 0;
+    let result;
+    try {
+      result = dirDiff(fileA, fileB, {
+        ignore: args.ignore,
+        only: args.only,
+        arraySet: args.arraySet,
+        loose: args.loose,
+        csvKey: args.csvKey
+      });
+    } catch (e) {
+      fail(e.message);
+    }
+    if (!args.quiet) {
+      if (args.json) {
+        process.stdout.write(renderDirJson(result, redactMatcherDir) + "\n");
+      } else {
+        const color = args.color ?? (process.stdout.isTTY && !process.env.NO_COLOR);
+        process.stdout.write(renderDirText(result, !!color, redactMatcherDir));
+      }
+    }
+    process.exit(args.exitZero ? 0 : result.changed ? 1 : 0);
+  }
   const rawA = readInput(fileA);
   const rawB = readInput(fileB);
-  const nameA = driverPath ?? (fileA === "-" ? void 0 : (0, import_node_path3.basename)(fileA));
-  const nameB = driverPath ?? (fileB === "-" ? void 0 : (0, import_node_path3.basename)(fileB));
+  const nameA = driverPath ?? (fileA === "-" ? void 0 : (0, import_node_path4.basename)(fileA));
+  const nameB = driverPath ?? (fileB === "-" ? void 0 : (0, import_node_path4.basename)(fileB));
   const fmtA = args.formatA ?? args.format ?? detectFormat(nameA, rawA);
   const fmtB = args.formatB ?? args.format ?? detectFormat(nameB, rawB);
   let valA;
