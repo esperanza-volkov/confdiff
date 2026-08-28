@@ -144,6 +144,24 @@
   uses RFC 6901 JSON Pointers so downstream tooling never has to guess where a key segment begins and
   ends.</p>
 
+  <h3>Reordered <code>env:</code> and <code>containers:</code> lists</h3>
+
+  <p>Kubernetes lists like <code>env:</code>, <code>containers:</code>, <code>ports:</code> and
+  <code>volumeMounts:</code> are really maps keyed by <code>name</code> — order carries no meaning, yet
+  a tool that re-emits them in a different order makes a positional diff light up. Tell confdiff to match
+  those elements by their key field with <code>--array-key</code>:</p>
+
+<pre><code>$ confdiff old-deploy.yaml new-deploy.yaml --array-key name
+<span class="chg">~ spec.replicas                                     2 => 4</span>
+<span class="chg">~ spec.template.spec.containers[name=api].image     "api:1.4.0" => "api:1.5.0"</span>
+<span class="chg">~ spec.template.spec.containers[name=api].env[name=LOG_LEVEL].value  "info" => "warn"</span></code></pre>
+
+  <p>Swapping two <code>env</code> entries now produces <em>zero</em> output, and a real change is
+  addressed by a stable, readable selector (<code>env[name=LOG_LEVEL]</code>) instead of a brittle array
+  index. The field is only applied where every element on both sides actually carries it, so one flag
+  cleanly keys <code>env</code> and <code>containers</code> at once; if a key value isn't unique on a
+  side, that list safely falls back to positional comparison.</p>
+
   <h3>Use it in CI on config drift</h3>
 
   <p>The same engine ships as a GitHub Action that posts a single, semantic diff as a sticky PR comment,
