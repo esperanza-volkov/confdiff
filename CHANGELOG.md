@@ -6,6 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-08-30
+
+### Added
+
+- **JSON-with-comments (JSONC / `.jsonc` / tsconfig-style) is now parsed
+  cleanly.** Config files that every JS/TS project ships — `tsconfig.json`,
+  VS Code `settings.json`, `devcontainer.json`, `.eslintrc.json`, `.babelrc` —
+  routinely use `//` and `/* … */` comments and trailing commas, which are
+  invalid in strict JSON. confdiff previously errored out on these with a parse
+  failure (exit 2). It now tolerates comments and trailing commas for any file
+  parsed as JSON (and recognizes the `.jsonc` extension). Comment/trailing-comma
+  stripping is string-aware — a `//`, `/*` or comma inside a double-quoted string
+  (e.g. a URL) is preserved — and is a strict no-op on conforming JSON, so
+  ordinary JSON diffs and parse-error line/column numbers are unchanged.
+
 ## [0.13.0] - 2026-08-28
 
 ### Added

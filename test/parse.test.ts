@@ -193,3 +193,46 @@ test("parseContent: YAML resolves merge keys (<<) from anchors", () => {
   const doc = "base: &b\n  x: 1\nchild:\n  <<: *b\n  y: 2\n";
   assert.deepEqual(parseContent(doc, "yaml"), { base: { x: 1 }, child: { x: 1, y: 2 } });
 });
+
+test("parseContent tolerates JSON-with-comments (jsonc/tsconfig-style)", () => {
+  // tsconfig.json, VS Code settings.json, devcontainer.json etc. use // and /* */
+  // comments and trailing commas — invalid strict JSON but ubiquitous in practice.
+  const src = `{
+    // compiler options
+    "compilerOptions": {
+      "target": "es2022", /* modern */
+      "strict": true,
+    },
+    "include": ["src/**/*"],
+  }`;
+  assert.deepEqual(parseContent(src, "json"), {
+    compilerOptions: { target: "es2022", strict: true },
+    include: ["src/**/*"],
+  });
+});
+
+test("stripJsonc does NOT touch comment-like sequences inside strings", () => {
+  // A // or /* inside a double-quoted string (e.g. a URL) must be preserved.
+  const src = '{"url":"http://ex.com//p","note":"a/*b*/c","n":1}';
+  assert.deepEqual(parseContent(src, "json"), {
+    url: "http://ex.com//p",
+    note: "a/*b*/c",
+    n: 1,
+  });
+});
+
+test("stripJsonc is a no-op on strict JSON and error positions still line up", () => {
+  // Valid JSON has no comments/trailing commas, so behaviour is unchanged...
+  assert.deepEqual(parseContent('{"a":1,"b":[1,2,3]}', "json"), { a: 1, b: [1, 2, 3] });
+  // ...and genuinely malformed JSON still throws.
+  assert.throws(() => parseContent('{"a": }', "json"));
+});
+
+test("detect .jsonc / .json5 by extension", () => {
+  assert.equal(detectFormat("tsconfig.jsonc", ""), "json");
+  assert.equal(detectFormat("a.json5", ""), "json");
+});
+
+test("sniff recognizes commented JSON as json", () => {
+  assert.equal(sniff('{\n  // hi\n  "a": 1,\n}'), "json");
+});

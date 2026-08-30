@@ -32,6 +32,87 @@ function isSafeBig(n: bigint): boolean {
 }
 
 /**
+ * Strip `//` line and block comments and trailing commas from a JSON document
+ * so JSON-with-comments config files parse cleanly: `tsconfig.json`, VS Code
+ * `settings.json`, `devcontainer.json`, `.eslintrc.json`, `.babelrc`, and any
+ * `.jsonc`/`.json5` file that only uses comments + trailing commas. Comments and
+ * trailing commas are never valid in strict JSON, so this is a NO-OP on any
+ * conforming JSON document — behaviour is byte-for-byte unchanged for ordinary
+ * input. String contents (including `//`, `/*` and commas inside double-quoted
+ * strings) are preserved. Comments are replaced with equal-length whitespace and
+ * a trailing comma with a single space, so parse-error line/column numbers still
+ * line up with the source.
+ */
+export function stripJsonc(text: string): string {
+  const out: string[] = [];
+  const n = text.length;
+  let inString = false;
+  for (let i = 0; i < n; i++) {
+    const c = text[i];
+    if (inString) {
+      out.push(c);
+      if (c === "\\" && i + 1 < n) {
+        out.push(text[i + 1]);
+        i++;
+      } else if (c === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (c === '"') {
+      inString = true;
+      out.push(c);
+      continue;
+    }
+    if (c === "/" && text[i + 1] === "/") {
+      i += 2;
+      out.push("  ");
+      while (i < n && text[i] !== "\n") {
+        out.push(text[i] === "\t" ? "\t" : " ");
+        i++;
+      }
+      if (i < n) out.push("\n"); // keep the newline
+      continue;
+    }
+    if (c === "/" && text[i + 1] === "*") {
+      i += 2;
+      out.push("  ");
+      while (i < n && !(text[i] === "*" && text[i + 1] === "/")) {
+        out.push(text[i] === "\n" ? "\n" : text[i] === "\t" ? "\t" : " ");
+        i++;
+      }
+      if (i + 1 < n) {
+        out.push("  ");
+        i++; // the loop's i++ consumes the second char
+      }
+      continue;
+    }
+    out.push(c);
+  }
+  // Remove trailing commas: a comma whose next non-whitespace char is } or ].
+  const s = out;
+  let inStr2 = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inStr2) {
+      if (c === "\\") i++;
+      else if (c === '"') inStr2 = false;
+      continue;
+    }
+    if (c === '"') {
+      inStr2 = true;
+      continue;
+    }
+    if (c === ",") {
+      let j = i + 1;
+      while (j < s.length && /\s/.test(s[j])) j++;
+      if (j < s.length && (s[j] === "}" || s[j] === "]")) s[i] = " ";
+    }
+  }
+  return s.join("");
+}
+
+/**
  * Parse JSON while preserving integers that exceed JS's safe range as BigInt.
  * The fast path (the vast majority of documents) is plain `JSON.parse`, so
  * behaviour is byte-for-byte unchanged. Only when the text contains a run of 16+
@@ -40,13 +121,15 @@ function isSafeBig(n: bigint): boolean {
  * of JSON and supports `intAsBigInt`. `normalizeBigInts` then demotes any
  * safe-range bigints back to plain numbers, so ordinary values are untouched.
  * This works on every supported Node version (unlike the Node 21+ JSON reviver
- * `context.source`) and in the browser playground.
+ * `context.source`) and in the browser playground. JSON-with-comments (`.jsonc`
+ * / tsconfig-style) input is tolerated via `stripJsonc` first.
  */
 function parseJsonContent(content: string): Value {
-  if (!/\d{16,}/.test(content)) return JSON.parse(content);
+  const text = stripJsonc(content);
+  if (!/\d{16,}/.test(text)) return JSON.parse(text);
   // Validate as JSON first so malformed input still yields a JSON-style error.
-  JSON.parse(content);
-  return normalizeBigInts(parseYaml(content, { intAsBigInt: true, uniqueKeys: false }));
+  JSON.parse(text);
+  return normalizeBigInts(parseYaml(text, { intAsBigInt: true, uniqueKeys: false }));
 }
 import ini from "ini";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
@@ -57,6 +140,7 @@ export type Value = unknown;
 
 const EXT_MAP: Record<string, Format> = {
   ".json": "json",
+  ".jsonc": "json",
   ".json5": "json",
   ".yaml": "yaml",
   ".yml": "yaml",
@@ -105,7 +189,7 @@ export function sniff(content: string): Format {
   if (trimmed[0] === "<") return "xml";
   if (trimmed[0] === "{" || trimmed[0] === "[") {
     try {
-      JSON.parse(trimmed);
+      JSON.parse(stripJsonc(trimmed));
       return "json";
     } catch {
       /* not strict json, fall through */

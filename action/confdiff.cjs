@@ -12711,13 +12711,82 @@ function normalizeBigInts(value) {
 function isSafeBig(n) {
   return n >= BigInt(Number.MIN_SAFE_INTEGER) && n <= BigInt(Number.MAX_SAFE_INTEGER);
 }
+function stripJsonc(text) {
+  const out = [];
+  const n = text.length;
+  let inString = false;
+  for (let i = 0; i < n; i++) {
+    const c = text[i];
+    if (inString) {
+      out.push(c);
+      if (c === "\\" && i + 1 < n) {
+        out.push(text[i + 1]);
+        i++;
+      } else if (c === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (c === '"') {
+      inString = true;
+      out.push(c);
+      continue;
+    }
+    if (c === "/" && text[i + 1] === "/") {
+      i += 2;
+      out.push("  ");
+      while (i < n && text[i] !== "\n") {
+        out.push(text[i] === "	" ? "	" : " ");
+        i++;
+      }
+      if (i < n) out.push("\n");
+      continue;
+    }
+    if (c === "/" && text[i + 1] === "*") {
+      i += 2;
+      out.push("  ");
+      while (i < n && !(text[i] === "*" && text[i + 1] === "/")) {
+        out.push(text[i] === "\n" ? "\n" : text[i] === "	" ? "	" : " ");
+        i++;
+      }
+      if (i + 1 < n) {
+        out.push("  ");
+        i++;
+      }
+      continue;
+    }
+    out.push(c);
+  }
+  const s = out;
+  let inStr2 = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inStr2) {
+      if (c === "\\") i++;
+      else if (c === '"') inStr2 = false;
+      continue;
+    }
+    if (c === '"') {
+      inStr2 = true;
+      continue;
+    }
+    if (c === ",") {
+      let j = i + 1;
+      while (j < s.length && /\s/.test(s[j])) j++;
+      if (j < s.length && (s[j] === "}" || s[j] === "]")) s[i] = " ";
+    }
+  }
+  return s.join("");
+}
 function parseJsonContent(content) {
-  if (!/\d{16,}/.test(content)) return JSON.parse(content);
-  JSON.parse(content);
-  return normalizeBigInts((0, import_yaml.parse)(content, { intAsBigInt: true, uniqueKeys: false }));
+  const text = stripJsonc(content);
+  if (!/\d{16,}/.test(text)) return JSON.parse(text);
+  JSON.parse(text);
+  return normalizeBigInts((0, import_yaml.parse)(text, { intAsBigInt: true, uniqueKeys: false }));
 }
 var EXT_MAP = {
   ".json": "json",
+  ".jsonc": "json",
   ".json5": "json",
   ".yaml": "yaml",
   ".yml": "yaml",
@@ -12757,7 +12826,7 @@ function sniff(content) {
   if (trimmed[0] === "<") return "xml";
   if (trimmed[0] === "{" || trimmed[0] === "[") {
     try {
-      JSON.parse(trimmed);
+      JSON.parse(stripJsonc(trimmed));
       return "json";
     } catch {
     }
