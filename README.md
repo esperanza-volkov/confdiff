@@ -3,6 +3,11 @@
 **Semantic, format-aware diff for config & structured-data files.**
 See what *actually* changed — the meaning, not the text.
 
+[![npm version](https://img.shields.io/npm/v/confdiff.svg)](https://www.npmjs.com/package/confdiff)
+[![npm downloads](https://img.shields.io/npm/dm/confdiff.svg)](https://www.npmjs.com/package/confdiff)
+[![CI](https://github.com/esperanza-volkov/confdiff/actions/workflows/ci.yml/badge.svg)](https://github.com/esperanza-volkov/confdiff/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/npm/l/confdiff.svg)](./LICENSE)
+
 **▶ [Try it in your browser — no install](https://esperanza-volkov.github.io/confdiff/)** (paste two configs, runs 100% client-side, nothing uploaded).
 
 <p align="center">
