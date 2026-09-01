@@ -1,7 +1,7 @@
 {
   "name": "confdiff",
-  "version": "0.14.0",
-  "description": "Semantic, format-aware diff for config & structured data files (JSON, YAML, TOML, INI, .env, CSV, XML). See what actually changed — the meaning, not the text.",
+  "version": "0.14.1",
+  "description": "Semantic, format-aware diff for config & structured-data files (JSON, JSONC, YAML, TOML, INI, .env, .properties, CSV, XML) — see what actually changed, compare across formats, and redact secrets so passwords/tokens never leak into a PR.",
   "type": "module",
   "bin": {
     "confdiff": "dist/cli.js"
@@ -32,14 +32,19 @@
     "config",
     "yaml",
     "json",
+    "jsonc",
     "toml",
     "ini",
     "dotenv",
+    "properties",
     "semantic-diff",
     "structured-diff",
     "cli",
     "ci",
     "config-drift",
+    "kubernetes",
+    "redact",
+    "secrets",
     "xml",
     "csv"
   ],

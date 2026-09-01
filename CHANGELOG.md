@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-09-01
+
+### Changed
+- npm package metadata: refreshed the `description` and `keywords` to reflect
+  current capabilities — the full nine-format set (now incl. JSONC and
+  `.properties`), cross-format comparison, and the `--redact` secret-masking
+  feature — so the package is discoverable via npm search. No code changes.
+
 ## [0.14.0] - 2026-08-30
 
 ### Added
