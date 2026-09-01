@@ -372,6 +372,14 @@ never reported at all.
   key is only caught by entropy — so enable both for the widest coverage.
   (Thanks to the folks on [Hacker News](https://news.ycombinator.com/item?id=49464310)
   who suggested content-based detection.)
+- **Name/value pairs are understood too.** Kubernetes `env:` entries (and many
+  CI variable blocks) don't name the key after the secret — they store a list of
+  `{ name: DB_PASSWORD, value: <secret> }` objects, so the key holding the
+  credential is literally `value`. When you diff such a list with
+  [`--array-key name`](#keyed-array-matching---array-key), `confdiff` reads the
+  sibling `name` field and redacts the paired `value`, so
+  `env[name=DB_PASSWORD].value` is masked while `env[name=LOG_LEVEL].value`
+  prints normally.
 - `--json` output masks the value too and adds `"redacted": true` on that change.
 
 This is exactly what you want in the [GitHub Action](#github-action--semantic-config-diff-on-your-prs)

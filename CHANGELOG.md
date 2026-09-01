@@ -6,7 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.14.1] - 2026-09-01
+## [0.15.0] - 2026-09-01
+
+### Fixed
+- `--redact` now masks secrets stored as **name/value pairs** — the ubiquitous
+  Kubernetes `env:` shape `{ name: DB_PASSWORD, value: <secret> }` (and similar
+  CI variable blocks). Previously the value leaked in the clear because its key
+  is literally `value`; now, when the list is diffed with `--array-key name`,
+  `confdiff` reads the sibling `name` field and redacts the paired value
+  (`env[name=DB_PASSWORD].value` is masked, `env[name=LOG_LEVEL].value` stays
+  visible). This closes a real secret-leak gap on one of the flagship use cases.
 
 ### Changed
 - npm package metadata: refreshed the `description` and `keywords` to reflect

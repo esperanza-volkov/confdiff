@@ -1,6 +1,6 @@
 {
   "name": "confdiff",
-  "version": "0.14.1",
+  "version": "0.15.0",
   "description": "Semantic, format-aware diff for config & structured-data files (JSON, JSONC, YAML, TOML, INI, .env, .properties, CSV, XML) — see what actually changed, compare across formats, and redact secrets so passwords/tokens never leak into a PR.",
   "type": "module",
   "bin": {

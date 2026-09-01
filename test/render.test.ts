@@ -67,7 +67,7 @@ test("renderText: BigInt values print full digits, no 'n' suffix", () => {
 });
 
 // --- secret redaction (--redact) ---
-import { makeRedactMatcher, looksSecret, redactToken } from "../src/redact.ts";
+import { makeRedactMatcher, looksSecret, looksSecretNameValuePair, redactToken } from "../src/redact.ts";
 
 test("looksSecret: matches secret-ish keys, not innocent look-alikes", () => {
   for (const k of ["password", "DB_PASSWORD", "api_token", "apiKey", "ACCESS_KEY", "clientSecret", "passphrase", "refresh_token"])
@@ -113,6 +113,24 @@ test("makeRedactMatcher: custom key glob extends builtins", () => {
   assert.ok(redact(["keyboard"]));   // custom
   assert.ok(redact(["DB_PASSWORD"])); // builtin still active
   assert.ok(!redact(["username"]));
+});
+
+test("makeRedactMatcher: name/value-pair idiom (k8s env) redacts the value field", () => {
+  const redact = makeRedactMatcher(true, []);
+  // `[name=DB_PASSWORD].value` — key is literally `value`, secret lives in the sibling `name`
+  assert.ok(redact(["env", { key: "name", value: "DB_PASSWORD" }, "value"]));
+  assert.ok(redact(["env", { key: "name", value: "API_TOKEN" }, "val"]));
+  // non-secret env var must stay visible (no over-redaction)
+  assert.ok(!redact(["env", { key: "name", value: "LOG_LEVEL" }, "value"]));
+  // only the paired `value`/`val` field is affected, not a sibling `name`
+  assert.ok(!redact(["env", { key: "name", value: "DB_PASSWORD" }, "name"]));
+});
+
+test("looksSecretNameValuePair: only fires for value under a secret-named key seg", () => {
+  assert.ok(looksSecretNameValuePair(["env", { key: "name", value: "secret_key" }, "value"]));
+  assert.ok(!looksSecretNameValuePair(["env", { key: "name", value: "region" }, "value"]));
+  assert.ok(!looksSecretNameValuePair(["env", { key: "id", value: "password" }, "value"])); // wrong key field
+  assert.ok(!looksSecretNameValuePair(["password", "value"])); // no keyed segment
 });
 
 // --- content-based (entropy) redaction (--redact-entropy) ---

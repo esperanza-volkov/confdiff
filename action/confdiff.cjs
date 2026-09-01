@@ -13150,6 +13150,16 @@ function looksSecret(seg) {
   }
   return false;
 }
+var VALUE_FIELDS = /* @__PURE__ */ new Set(["value", "val"]);
+var NAME_FIELDS = /* @__PURE__ */ new Set(["name", "key"]);
+function looksSecretNameValuePair(path) {
+  if (path.length < 2) return false;
+  const last = path[path.length - 1];
+  if (typeof last !== "string" || !VALUE_FIELDS.has(last.toLowerCase())) return false;
+  const prev = path[path.length - 2];
+  if (!isKeySeg(prev)) return false;
+  return NAME_FIELDS.has(String(prev.key).toLowerCase()) && looksSecret(String(prev.value));
+}
 function shannonEntropy(s) {
   if (s.length === 0) return 0;
   const freq = /* @__PURE__ */ new Map();
@@ -13176,6 +13186,7 @@ function makeRedactMatcher(builtins, globs, entropy = false) {
     if (builtins && path.length > 0) {
       const last = path[path.length - 1];
       if (typeof last === "string" && looksSecret(last)) return true;
+      if (looksSecretNameValuePair(path)) return true;
     }
     if (entropy && looksHighEntropy(value)) return true;
     return false;

@@ -1,4 +1,4 @@
-import { matchAnyGlob, type Path } from "./diff.js";
+import { matchAnyGlob, isKeySeg, type Path } from "./diff.js";
 
 /**
  * Secret-safe diffs. When enabled, values at "sensitive" paths (passwords,
@@ -70,6 +70,29 @@ export function looksSecret(seg: string): boolean {
 }
 
 /**
+ * The "name/value pair" idiom: many real configs don't name the key after the
+ * secret — they store a list of `{ name: <KEY>, value: <secret> }` objects, so
+ * the key holding the credential is literally `value` while the *secret's name*
+ * lives in a sibling `name` field. This is how Kubernetes `env:` entries,
+ * container `env`/`envFrom`, and many CI variable blocks are shaped. When such
+ * a list is diffed with `--array-key name`, the path carries a keyed segment
+ * (`[name=DB_PASSWORD]`) right before the `value` field, so we can tell the
+ * value is a secret even though its own key name (`value`) looks innocuous.
+ */
+const VALUE_FIELDS = new Set(["value", "val"]);
+const NAME_FIELDS = new Set(["name", "key"]);
+
+/** Is `path` the `value` half of a `{ name: <secret>, value: … }` pair? */
+export function looksSecretNameValuePair(path: Path): boolean {
+  if (path.length < 2) return false;
+  const last = path[path.length - 1];
+  if (typeof last !== "string" || !VALUE_FIELDS.has(last.toLowerCase())) return false;
+  const prev = path[path.length - 2];
+  if (!isKeySeg(prev)) return false;
+  return NAME_FIELDS.has(String(prev.key).toLowerCase()) && looksSecret(String(prev.value));
+}
+
+/**
  * Shannon entropy (bits per character) of a string. A uniformly random
  * high-entropy string (API key, JWT, base64 token) scores high (~4–6);
  * repetitive or natural-language text scores low.
@@ -131,6 +154,9 @@ export function makeRedactMatcher(builtins: boolean, globs: string[], entropy = 
     if (builtins && path.length > 0) {
       const last = path[path.length - 1];
       if (typeof last === "string" && looksSecret(last)) return true;
+      // name/value-pair idiom (k8s env, CI variable blocks, …): a `value` field
+      // whose sibling `name` names a secret (`[name=DB_PASSWORD].value`).
+      if (looksSecretNameValuePair(path)) return true;
     }
     if (entropy && looksHighEntropy(value)) return true;
     return false;
