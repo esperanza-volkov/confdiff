@@ -178,7 +178,7 @@ $ confdiff old.txt new.txt --format-a json --format-b yaml</code></pre>
     <p>Paste a JSON config on one side and its YAML on the other in the
     <a href="./">confdiff playground</a> — set the two format dropdowns independently. It runs entirely in
     your browser, so nothing you paste is uploaded. Or run it with zero install:</p>
-<pre><code>npx github:esperanza-volkov/confdiff config.json config.yaml</code></pre>
+<pre><code>npx confdiff config.json config.yaml</code></pre>
     <p class="dim">No Node? Run the container:
     <code>docker run --rm -v "$PWD:/work" ghcr.io/esperanza-volkov/confdiff a.json b.yaml</code></p>
     <p class="dim">confdiff is MIT-licensed and open source:
