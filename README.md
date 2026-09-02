@@ -587,13 +587,15 @@ Add it to any MCP client config:
   "mcpServers": {
     "confdiff": {
       "command": "npx",
-      "args": ["-y", "confdiff-mcp"]
+      "args": ["-y", "-p", "confdiff", "confdiff-mcp"]
     }
   }
 }
 ```
 
-(Or install globally with `npm i -g confdiff` and use `"command": "confdiff-mcp"`.)
+(`confdiff-mcp` is a binary shipped inside the `confdiff` package, hence
+`-p confdiff`. Or install globally with `npm i -g confdiff` and use
+`"command": "confdiff-mcp"` with no `args`.)
 Then ask the agent things like *"did my edit to `prod.yaml` change anything real
 besides the replica count?"* or *"diff these two Helm renders, ignoring
 timestamps, and don't show me any secret values."*

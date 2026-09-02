@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-09-02
+
+### Fixed
+- Docs: corrected the MCP client config to `npx -y -p confdiff confdiff-mcp`
+  (`confdiff-mcp` is a binary shipped inside the `confdiff` package, so bare
+  `npx confdiff-mcp` fails to resolve). No code change.
+
 ## [0.16.0] - 2026-09-02
 
 ### Added
@@ -21,7 +28,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   a compact change list plus structured JSON. `redact: true` masks secret values
   as stable fingerprints so plaintext passwords/tokens never enter the model's
   context while drift stays visible. Add it to any MCP client with
-  `{ "command": "npx", "args": ["-y", "confdiff-mcp"] }`. See the README.
+  `{ "command": "npx", "args": ["-y", "-p", "confdiff", "confdiff-mcp"] }`. See
+  the README.
 
   The server is bundled into a single self-contained binary, so the MCP SDK and
   its dependencies stay **dev-only** — installing confdiff for the CLI does not
