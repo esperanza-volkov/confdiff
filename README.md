@@ -115,6 +115,9 @@ each on a single line with a clear path, old value, and new value.
   [Keyed arrays](#keyed-arrays-list-maps).
 - **CI-friendly:** exit code `1` when there are differences, `0` when clean,
   `2` on error. Machine-readable `--json` output. Reads from stdin (`-`).
+- **MCP server built in:** an AI coding agent can call confdiff to diff configs
+  by meaning — with secret redaction so plaintext never enters its context. See
+  [MCP server](#mcp-server--let-your-ai-agent-diff-configs).
 - Zero-config, fast, and dependency-light. Works as a library too.
 
 ## How it compares
@@ -559,6 +562,41 @@ const d = diff({ a: 1 }, { a: 2 }); // [{ path: ["a"], kind: "change", ... }]
 ```
 
 Each `Change` is `{ path, kind: "add"|"remove"|"change", oldValue?, newValue?, typeChanged? }`.
+
+## MCP server — let your AI agent diff configs
+
+confdiff ships an [MCP](https://modelcontextprotocol.io) server, so an AI coding
+assistant (Claude Desktop, Cursor, Cline, Windsurf, …) can compare configs by
+**meaning** instead of pasting whole files and eyeballing the noise. It exposes
+two tools:
+
+- **`diff_configs`** — diff two config strings the model already has in context.
+- **`diff_config_files`** — read two files from disk by path and diff them.
+
+Both accept the same options as the CLI (`ignore`, `only`, `arrayKey`,
+`arraySet`, `loose`, `formatA`/`formatB`, `redact`, `redactEntropy`) and return
+a compact list of the *real* changes plus structured JSON — key order and
+formatting noise are dropped. Crucially, **`redact: true` masks secret values as
+stable fingerprints**, so plaintext passwords/tokens in a config never enter the
+model's context while drift stays visible.
+
+Add it to any MCP client config:
+
+```jsonc
+{
+  "mcpServers": {
+    "confdiff": {
+      "command": "npx",
+      "args": ["-y", "confdiff-mcp"]
+    }
+  }
+}
+```
+
+(Or install globally with `npm i -g confdiff` and use `"command": "confdiff-mcp"`.)
+Then ask the agent things like *"did my edit to `prod.yaml` change anything real
+besides the replica count?"* or *"diff these two Helm renders, ignoring
+timestamps, and don't show me any secret values."*
 
 ## How it decides two files are equal
 

@@ -1,10 +1,11 @@
 {
   "name": "confdiff",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Semantic, format-aware diff for config & structured-data files (JSON, JSONC, YAML, TOML, INI, .env, .properties, CSV, XML) — see what actually changed, compare across formats, and redact secrets so passwords/tokens never leak into a PR.",
   "type": "module",
   "bin": {
-    "confdiff": "dist/cli.js"
+    "confdiff": "dist/cli.js",
+    "confdiff-mcp": "dist/mcp.cjs"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,10 +23,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "node --test --import tsx test/*.test.ts",
-    "prepare": "npm run build",
-    "prepublishOnly": "npm run build",
+    "prepare": "npm run build && npm run build:mcp",
+    "prepublishOnly": "npm run build && npm run build:mcp",
     "build:action": "esbuild src/cli.ts --bundle --platform=node --target=node20 --format=cjs --outfile=action/confdiff.cjs",
-    "build:web": "esbuild web/entry.ts --bundle --format=iife --platform=browser --target=es2020 --alias:node:path=./web/shims/path.js --outfile=docs/playground.js --minify && cp web/index.html docs/index.html && cp web/app.js docs/app.js && cp web/og.png docs/og.png && cp web/robots.txt docs/robots.txt && cp web/sitemap.xml docs/sitemap.xml && cp web/secrets-in-config-diffs.html docs/secrets-in-config-diffs.html && cp web/diff-kubernetes-manifests.html docs/diff-kubernetes-manifests.html && cp web/diff-docker-compose.html docs/diff-docker-compose.html && cp web/cross-format-config-diff.html docs/cross-format-config-diff.html && cp web/confdiff-preview.png docs/confdiff-preview.png"
+    "build:web": "esbuild web/entry.ts --bundle --format=iife --platform=browser --target=es2020 --alias:node:path=./web/shims/path.js --outfile=docs/playground.js --minify && cp web/index.html docs/index.html && cp web/app.js docs/app.js && cp web/og.png docs/og.png && cp web/robots.txt docs/robots.txt && cp web/sitemap.xml docs/sitemap.xml && cp web/secrets-in-config-diffs.html docs/secrets-in-config-diffs.html && cp web/diff-kubernetes-manifests.html docs/diff-kubernetes-manifests.html && cp web/diff-docker-compose.html docs/diff-docker-compose.html && cp web/cross-format-config-diff.html docs/cross-format-config-diff.html && cp web/confdiff-preview.png docs/confdiff-preview.png",
+    "build:mcp": "node scripts/build-mcp.mjs"
   },
   "keywords": [
     "diff",
@@ -69,9 +71,11 @@
     "yaml": "^2.6.1"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@types/node": "^22.10.0",
+    "esbuild": "^0.24.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "esbuild": "^0.24.0"
+    "zod": "^3.25.76"
   }
 }

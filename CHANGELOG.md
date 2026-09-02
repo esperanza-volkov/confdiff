@@ -6,6 +6,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-09-02
+
+### Added
+- **MCP server** (`confdiff-mcp`): confdiff now ships a
+  [Model Context Protocol](https://modelcontextprotocol.io) server so AI coding
+  agents (Claude Desktop, Cursor, Cline, Windsurf, …) can diff configs by
+  *meaning* instead of pasting whole files. Two tools:
+  - `diff_configs` — diff two config strings already in the model's context.
+  - `diff_config_files` — read two files from disk by path and diff them.
+
+  Both accept the same options as the CLI (`ignore`, `only`, `arrayKey`,
+  `arraySet`, `loose`, `formatA`/`formatB`, `redact`, `redactEntropy`) and return
+  a compact change list plus structured JSON. `redact: true` masks secret values
+  as stable fingerprints so plaintext passwords/tokens never enter the model's
+  context while drift stays visible. Add it to any MCP client with
+  `{ "command": "npx", "args": ["-y", "confdiff-mcp"] }`. See the README.
+
+  The server is bundled into a single self-contained binary, so the MCP SDK and
+  its dependencies stay **dev-only** — installing confdiff for the CLI does not
+  pull them in.
+
 ## [0.15.0] - 2026-09-01
 
 ### Fixed

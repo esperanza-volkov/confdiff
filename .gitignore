@@ -7,4 +7,6 @@ dist/
 # internal working docs (not published)
 PLAN.md
 LAUNCH.md
-scripts/
+scripts/*
+# ...but the MCP bundle build script must be tracked (CI prepare depends on it)
+!scripts/build-mcp.mjs
