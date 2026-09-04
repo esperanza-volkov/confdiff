@@ -596,6 +596,11 @@ Add it to any MCP client config:
 (`confdiff-mcp` is a binary shipped inside the `confdiff` package, hence
 `-p confdiff`. Or install globally with `npm i -g confdiff` and use
 `"command": "confdiff-mcp"` with no `args`.)
+
+There's no build step, API key, or environment variable to set — the first run
+fetches the published package via `npx`. Agents that install MCP servers
+automatically (e.g. Cline) can follow
+[`llms-install.md`](./llms-install.md) for the exact one-step setup.
 Then ask the agent things like *"did my edit to `prod.yaml` change anything real
 besides the replica count?"* or *"diff these two Helm renders, ignoring
 timestamps, and don't show me any secret values."*
