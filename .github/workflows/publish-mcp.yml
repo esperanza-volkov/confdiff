@@ -4,10 +4,11 @@ name: Publish to MCP Registry
 # (registry.modelcontextprotocol.io) using GitHub OIDC — no secrets required.
 # The npm package `confdiff-mcp` must already be published (its package.json
 # carries the `mcpName` ownership marker that the registry verifies).
+# Run manually (workflow_dispatch) once per new version, after the confdiff-mcp
+# npm package has been published and server.json's version bumped. The registry
+# rejects duplicate versions, so this must fire exactly once per version.
 on:
   workflow_dispatch:
-  push:
-    tags: ["v*"]
 
 jobs:
   publish:
