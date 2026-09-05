@@ -175,6 +175,15 @@ confdiff is published on the [npm registry](https://www.npmjs.com/package/confdi
 Prefer the bleeding edge? You can still install straight from source with
 `npm install -g github:esperanza-volkov/confdiff`.
 
+**Homebrew (macOS / Linux):**
+
+```bash
+brew install esperanza-volkov/confdiff/confdiff
+```
+
+The [tap](https://github.com/esperanza-volkov/homebrew-confdiff) tracks the latest
+release and pulls in Node.js for you.
+
 ### No Node? Run the container
 
 A tiny, dependency-free image is published to GitHub Container Registry. Mount
