@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-09-05
+
+### Added
+- **Standalone `confdiff-mcp` npm package** + listing in the official
+  [MCP Registry](https://registry.modelcontextprotocol.io/) as
+  `io.github.esperanza-volkov/confdiff-mcp`. The MCP server now installs with a
+  plain `npx -y confdiff-mcp` (no `-p` flag), which is what every MCP client
+  expects, and is discoverable in the canonical registry AI clients query.
+  Published via GitHub OIDC (`.github/workflows/publish-mcp.yml`), no secrets.
+  The `confdiff-mcp` bin inside the main `confdiff` package still works.
+
 ## [0.16.1] - 2026-09-02
 
 ### Fixed

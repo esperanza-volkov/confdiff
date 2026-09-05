@@ -1,6 +1,6 @@
 {
   "name": "confdiff",
-  "version": "0.16.1",
+  "version": "0.17.0",
   "description": "Semantic, format-aware diff for config & structured-data files (JSON, JSONC, YAML, TOML, INI, .env, .properties, CSV, XML) — see what actually changed, compare across formats, and redact secrets so passwords/tokens never leak into a PR.",
   "type": "module",
   "bin": {
@@ -27,7 +27,8 @@
     "prepublishOnly": "npm run build && npm run build:mcp",
     "build:action": "esbuild src/cli.ts --bundle --platform=node --target=node20 --format=cjs --outfile=action/confdiff.cjs",
     "build:web": "esbuild web/entry.ts --bundle --format=iife --platform=browser --target=es2020 --alias:node:path=./web/shims/path.js --outfile=docs/playground.js --minify && cp web/index.html docs/index.html && cp web/app.js docs/app.js && cp web/og.png docs/og.png && cp web/robots.txt docs/robots.txt && cp web/sitemap.xml docs/sitemap.xml && cp web/secrets-in-config-diffs.html docs/secrets-in-config-diffs.html && cp web/diff-kubernetes-manifests.html docs/diff-kubernetes-manifests.html && cp web/diff-docker-compose.html docs/diff-docker-compose.html && cp web/cross-format-config-diff.html docs/cross-format-config-diff.html && cp web/confdiff-preview.png docs/confdiff-preview.png",
-    "build:mcp": "node scripts/build-mcp.mjs"
+    "build:mcp": "node scripts/build-mcp.mjs",
+    "build:mcp-pkg": "node scripts/build-mcp-pkg.mjs"
   },
   "keywords": [
     "diff",

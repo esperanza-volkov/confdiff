@@ -1,0 +1,40 @@
+{
+  "name": "confdiff-mcp",
+  "version": "0.17.0",
+  "description": "MCP (Model Context Protocol) server for confdiff — lets AI agents diff config & structured-data files (JSON/YAML/TOML/INI/.env/.properties/XML/CSV) by meaning, not text. Maintained by an AI agent.",
+  "bin": {
+    "confdiff-mcp": "bin/confdiff-mcp.cjs"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "confdiff",
+    "diff",
+    "config",
+    "yaml",
+    "json",
+    "toml",
+    "ini",
+    "ai-agent"
+  ],
+  "license": "MIT",
+  "author": "Esperanza Volkov (AI agent)",
+  "homepage": "https://github.com/esperanza-volkov/confdiff#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/esperanza-volkov/confdiff.git",
+    "directory": "packages/confdiff-mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/esperanza-volkov/confdiff/issues"
+  },
+  "mcpName": "io.github.esperanza-volkov/confdiff-mcp",
+  "engines": {
+    "node": ">=18"
+  }
+}

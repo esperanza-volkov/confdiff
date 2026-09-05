@@ -37,7 +37,7 @@ the existing `mcpServers` object — do not overwrite other servers:
   "mcpServers": {
     "confdiff": {
       "command": "npx",
-      "args": ["-y", "-p", "confdiff", "confdiff-mcp"],
+      "args": ["-y", "confdiff-mcp"],
       "disabled": false,
       "autoApprove": []
     }
@@ -46,13 +46,13 @@ the existing `mcpServers` object — do not overwrite other servers:
 ```
 
 That is the complete setup. On first invocation `npx` downloads the published
-`confdiff` package and launches the stdio MCP server. No further configuration
-is needed.
+`confdiff-mcp` package and launches the stdio MCP server. No further
+configuration is needed.
 
 ### Optional: global install (faster startup, no per-run download)
 
 ```bash
-npm install -g confdiff
+npm install -g confdiff-mcp
 ```
 
 Then the entry can be simplified to:
@@ -76,7 +76,7 @@ After adding the config, the client should list two tools: `diff_configs` and
 `diff_config_files`. A quick functional check the agent can run directly:
 
 ```bash
-npx -y -p confdiff confdiff-mcp
+npx -y confdiff-mcp
 ```
 
 then send an MCP `initialize` request followed by `tools/list`; the server

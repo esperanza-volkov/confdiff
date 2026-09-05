@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.esperanza-volkov/confdiff-mcp",
+  "description": "Semantic, format-aware diff of config files (JSON/YAML/TOML/INI/.env/XML/CSV) for AI agents",
+  "repository": {
+    "url": "https://github.com/esperanza-volkov/confdiff",
+    "source": "github"
+  },
+  "version": "0.17.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "confdiff-mcp",
+      "version": "0.17.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

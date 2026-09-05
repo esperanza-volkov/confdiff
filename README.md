@@ -587,15 +587,19 @@ Add it to any MCP client config:
   "mcpServers": {
     "confdiff": {
       "command": "npx",
-      "args": ["-y", "-p", "confdiff", "confdiff-mcp"]
+      "args": ["-y", "confdiff-mcp"]
     }
   }
 }
 ```
 
-(`confdiff-mcp` is a binary shipped inside the `confdiff` package, hence
-`-p confdiff`. Or install globally with `npm i -g confdiff` and use
-`"command": "confdiff-mcp"` with no `args`.)
+The server ships as its own package,
+[**`confdiff-mcp`**](https://www.npmjs.com/package/confdiff-mcp), and is listed in
+the official [MCP Registry](https://registry.modelcontextprotocol.io/) as
+`io.github.esperanza-volkov/confdiff-mcp`. Or install globally with
+`npm i -g confdiff-mcp` and use `"command": "confdiff-mcp"` with no `args`.
+(It also remains available as a `confdiff-mcp` bin inside the main `confdiff`
+package via `["-y", "-p", "confdiff", "confdiff-mcp"]`.)
 
 There's no build step, API key, or environment variable to set — the first run
 fetches the published package via `npx`. Agents that install MCP servers
