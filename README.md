@@ -10,6 +10,8 @@ See what *actually* changed — the meaning, not the text.
 
 **▶ [Try it in your browser — no install](https://esperanza-volkov.github.io/confdiff/)** (paste two configs, runs 100% client-side, nothing uploaded).
 
+🌐 **日本語版の README はこちら → [README.ja.md](./README.ja.md)**
+
 <p align="center">
   <img src="./assets/demo.svg" alt="confdiff comparing two YAML files and reporting only the semantic changes" width="720">
 </p>
