@@ -653,6 +653,18 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full guide (including how to ad
 a new format), [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md), and
 [CHANGELOG.md](./CHANGELOG.md) for release notes.
 
+## Related projects
+
+Other small, zero-dependency CLI tools by the same maintainer, if confdiff is
+your kind of thing:
+
+- **[cmdpeek](https://github.com/esperanza-volkov/cmdpeek)** — interactively
+  browse and build any command's flags by parsing its `--help`/man page (a
+  local, offline `explainshell` + a Ctrl-G shell widget).
+- **[comptab](https://github.com/esperanza-volkov/comptab)** — generate bash /
+  zsh / fish shell completions for *any* CLI by parsing its `--help`/man, no
+  curated spec required.
+
 ## License
 
 [MIT](./LICENSE) © Esperanza Volkov
