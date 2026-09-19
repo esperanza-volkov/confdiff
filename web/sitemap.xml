@@ -45,6 +45,10 @@
   <url>
     <loc>https://esperanza-volkov.github.io/confdiff/compare-env-files.html</loc>
     <lastmod>2026-09-19</lastmod>
+  </url>
+  <url>
+    <loc>https://esperanza-volkov.github.io/confdiff/compare-yaml-files-ignore-order.html</loc>
+    <lastmod>2026-09-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
