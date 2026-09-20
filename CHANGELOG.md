@@ -6,6 +6,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-09-20
+
+### Security
+- Bump `smol-toml` to `^1.7.1` to pick up the fix for
+  [CVE-2026-85730](https://nvd.nist.gov/vuln/detail/CVE-2026-85730) (HIGH): a
+  denial-of-service where `parse()` could enter an infinite loop on a value
+  inside an array or inline table followed by a comment with no trailing
+  newline. confdiff parses arbitrary user-supplied TOML, so this input was
+  reachable. Thanks to @anupamme for the report and patch (#3).
+
 ## [0.17.0] - 2026-09-05
 
 ### Added
