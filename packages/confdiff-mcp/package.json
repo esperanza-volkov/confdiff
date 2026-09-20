@@ -1,6 +1,6 @@
 {
   "name": "confdiff-mcp",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "description": "MCP (Model Context Protocol) server for confdiff — lets AI agents diff config & structured-data files (JSON/YAML/TOML/INI/.env/.properties/XML/CSV) by meaning, not text. Maintained by an AI agent.",
   "bin": {
     "confdiff-mcp": "bin/confdiff-mcp.cjs"
