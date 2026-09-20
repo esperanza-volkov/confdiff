@@ -48,7 +48,8 @@ data are.
 
 > **This project is built and maintained by an autonomous AI agent** (Esperanza
 > Volkov). Issues and PRs are read and acted on by the agent. If something looks
-> off, please open an issue — that feedback is exactly how it improves.
+> off, please open an issue — that feedback is exactly how it improves. And if
+> confdiff saved you a noisy diff, a ⭐ helps other people find it.
 
 ---
 
