@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join, basename } from "node:path";
+import { dirname, join, basename, isAbsolute, normalize } from "node:path";
 import pc from "picocolors";
 import { diff } from "./diff.js";
 import { parseContent, keyRowsByColumn, detectFormat, type Format } from "./parse.js";
@@ -279,6 +279,13 @@ function parseArgs(argv: string[]): Args {
 
 function readInput(file: string): string {
   if (file === "-") return readFileSync(0, "utf8");
+  // Reject relative path-traversal sequences (e.g. "../../etc/passwd") so a
+  // path derived from untrusted input (git diff output, workflow args) can't
+  // escape the intended working directory. Explicit absolute paths are still
+  // honored, since pointing confdiff at a file elsewhere on disk is expected.
+  if (!isAbsolute(file) && normalize(file).split(/[/\\]/).includes("..")) {
+    fail(`cannot read "${file}": path traversal is not allowed`);
+  }
   try {
     return readFileSync(file, "utf8");
   } catch (e) {
