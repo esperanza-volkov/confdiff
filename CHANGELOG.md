@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.17.2] - 2026-09-20
+
+### Security
+- **GitHub Action:** rebuild the bundled CLI (`action/confdiff.cjs`) so the
+  Action also picks up the [CVE-2026-85730](https://nvd.nist.gov/vuln/detail/CVE-2026-85730)
+  `smol-toml` fix. The bundle had been lagging at the v0.16.0 build and still
+  contained the vulnerable parser, so a pull request adding a malformed TOML
+  config file could hang the Action's job (denial-of-service) until the
+  runner timed out. The npm CLI (`dist/`) was already patched in 0.17.1 and was
+  never affected — only the Action's baked-in bundle was. The moving `v1` tag
+  now points at this release. No behavior change for existing users otherwise.
+
 ## [0.17.1] - 2026-09-20
 
 ### Security

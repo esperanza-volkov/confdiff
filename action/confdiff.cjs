@@ -8302,6 +8302,8 @@ function skipUntil(str, ptr, sep3, end, banNewLines = false) {
     let c = str[i];
     if (c === "#") {
       i = indexOfNewline(str, i);
+      if (i < 0)
+        break;
     } else if (c === sep3) {
       return i + 1;
     } else if (c === end || banNewLines && (c === "\n" || c === "\r" && str[i + 1] === "\n")) {
