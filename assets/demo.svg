@@ -1,39 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="720" height="248" viewBox="0 0 720 248" font-family='ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace' font-size="14">
-<rect width="720" height="248" rx="10" fill="#0d1117"/>
-<rect width="720" height="34" rx="10" fill="#161b22"/>
-<rect y="24" width="720" height="10" fill="#161b22"/>
-<circle cx="20" cy="17" r="6" fill="#f66151"/>
-<circle cx="40" cy="17" r="6" fill="#e9ad0c"/>
-<circle cx="60" cy="17" r="6" fill="#33d17a"/>
-<text x="360.0" y="22" fill="#7d8590" text-anchor="middle" font-size="12">confdiff — semantic config diff</text>
-<text x="20.0" y="56" fill="#58a6ff" xml:space="preserve">$ </text>
-<text x="36.8" y="56" fill="#c9d1d9" xml:space="preserve">confdiff old.yaml new.yaml</text>
-<text x="20.0" y="78" fill="#e9ad0c" xml:space="preserve">~ </text>
-<text x="36.8" y="78" fill="#e9ad0c" xml:space="preserve">env.LOG_LEVEL  </text>
-<text x="162.8" y="78" fill="#f66151" xml:space="preserve">"info"</text>
-<text x="213.2" y="78" fill="#7d8590" xml:space="preserve"> =&gt; </text>
-<text x="246.8" y="78" fill="#33d17a" xml:space="preserve">"debug"</text>
-<text x="20.0" y="100" fill="#33d17a" xml:space="preserve">+ </text>
-<text x="36.8" y="100" fill="#33d17a" xml:space="preserve">env.NEW_FLAG   </text>
-<text x="162.8" y="100" fill="#7d8590" xml:space="preserve">= </text>
-<text x="179.6" y="100" fill="#33d17a" xml:space="preserve">true</text>
-<text x="20.0" y="122" fill="#e9ad0c" xml:space="preserve">~ </text>
-<text x="36.8" y="122" fill="#e9ad0c" xml:space="preserve">image          </text>
-<text x="162.8" y="122" fill="#f66151" xml:space="preserve">"nginx:1.25"</text>
-<text x="263.6" y="122" fill="#7d8590" xml:space="preserve"> =&gt; </text>
-<text x="297.2" y="122" fill="#33d17a" xml:space="preserve">"nginx:1.26"</text>
-<text x="20.0" y="144" fill="#e9ad0c" xml:space="preserve">~ </text>
-<text x="36.8" y="144" fill="#e9ad0c" xml:space="preserve">ports[1]       </text>
-<text x="162.8" y="144" fill="#f66151" xml:space="preserve">443</text>
-<text x="188.0" y="144" fill="#7d8590" xml:space="preserve"> =&gt; </text>
-<text x="221.6" y="144" fill="#33d17a" xml:space="preserve">8443</text>
-<text x="20.0" y="166" fill="#e9ad0c" xml:space="preserve">~ </text>
-<text x="36.8" y="166" fill="#e9ad0c" xml:space="preserve">replicas       </text>
-<text x="162.8" y="166" fill="#f66151" xml:space="preserve">3</text>
-<text x="171.2" y="166" fill="#7d8590" xml:space="preserve"> =&gt; </text>
-<text x="204.8" y="166" fill="#33d17a" xml:space="preserve">5</text>
-<text x="20.0" y="210" fill="#c9d1d9" xml:space="preserve">5 changes: </text>
-<text x="112.4" y="210" fill="#33d17a" xml:space="preserve">1 added</text>
-<text x="171.2" y="210" fill="#c9d1d9" xml:space="preserve">, </text>
-<text x="188.0" y="210" fill="#e9ad0c" xml:space="preserve">4 changed</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="300" viewBox="0 0 760 300" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="14">
+<title>confdiff — semantic, secret-safe config diff (animated demo)</title>
+<rect width="760" height="300" rx="11" fill="#0d1117"/>
+<rect width="760" height="36" rx="11" fill="#161b22"/>
+<rect y="26" width="760" height="10" fill="#161b22"/>
+<circle cx="22" cy="18" r="6" fill="#f66151"/>
+<circle cx="42" cy="18" r="6" fill="#e9ad0c"/>
+<circle cx="62" cy="18" r="6" fill="#33d17a"/>
+<text x="380.0" y="23" fill="#7d8590" text-anchor="middle" font-size="12">confdiff — semantic, secret-safe config diff</text>
+<text x="16" y="62" fill="#3fb950">$</text>
+<clipPath id="type"><rect x="34" y="44" height="26" width="0">
+<animate attributeName="width" values="0;0;319.2;319.2;319.2;0" keyTimes="0;0.03;0.2182;0.8727;0.999;1" dur="11.0s" repeatCount="indefinite" calcMode="linear"/></rect></clipPath>
+<g clip-path="url(#type)"><text x="34" y="62" fill="#e6edf3" xml:space="preserve">confdiff prod.env staging.env --redact</text></g>
+<rect y="50" width="8" height="16" fill="#e6edf3" x="34">
+<animate attributeName="x" values="34;34;353.2;353.2" keyTimes="0;0.03;0.2182;1" dur="11.0s" repeatCount="indefinite" calcMode="linear"/>
+<animate attributeName="opacity" values="1;0;1" dur="1.05s" repeatCount="indefinite"/>
+</rect>
+<g opacity="0"><text x="34" y="96" xml:space="preserve"><tspan fill="#d29922">~ </tspan><tspan fill="#e6edf3">API_TOKEN    </tspan><tspan fill="#6e7681">«redacted:f57ea9»</tspan><tspan fill="#6e7681"> =&gt; </tspan><tspan fill="#6e7681">«redacted:d4a89c»</tspan></text><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.2636;0.2836;0.8727;0.9327;1" dur="11.0s" repeatCount="indefinite" calcMode="linear"/></g>
+<g opacity="0"><text x="34" y="119" xml:space="preserve"><tspan fill="#d29922">~ </tspan><tspan fill="#e6edf3">DB_PASSWORD  </tspan><tspan fill="#6e7681">«redacted:faac14»</tspan><tspan fill="#6e7681"> =&gt; </tspan><tspan fill="#6e7681">«redacted:726de5»</tspan></text><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.2955;0.3155;0.8727;0.9327;1" dur="11.0s" repeatCount="indefinite" calcMode="linear"/></g>
+<g opacity="0"><text x="34" y="142" xml:space="preserve"><tspan fill="#d29922">~ </tspan><tspan fill="#e6edf3">LOG_LEVEL    </tspan><tspan fill="#a5d6ff">"info"</tspan><tspan fill="#6e7681"> =&gt; </tspan><tspan fill="#a5d6ff">"debug"</tspan></text><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.3273;0.3473;0.8727;0.9327;1" dur="11.0s" repeatCount="indefinite" calcMode="linear"/></g>
+<g opacity="0"><text x="34" y="173" xml:space="preserve"><tspan fill="#7d8590">3 changes: </tspan><tspan fill="#7d8590">3 changed</tspan></text><animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.3682;0.3882;0.8727;0.9327;1" dur="11.0s" repeatCount="indefinite" calcMode="linear"/></g>
+<g opacity="0"><text x="16" y="213" fill="#57ab5a" font-size="12.5" font-style="italic" xml:space="preserve">✓ keys reordered + a comment added in staging — reported as 0 noise, only real changes shown</text>
+<animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.4091;0.4291;0.8727;0.9327;1" dur="11.0s" repeatCount="indefinite" calcMode="linear"/>
+</g>
 </svg>

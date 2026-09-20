@@ -13,7 +13,7 @@ See what *actually* changed — the meaning, not the text.
 🌐 **日本語版の README はこちら → [README.ja.md](./README.ja.md)**
 
 <p align="center">
-  <img src="./assets/demo.svg" alt="confdiff comparing two YAML files and reporting only the semantic changes" width="720">
+  <img src="./assets/demo.svg" alt="Animated terminal: confdiff diffing two .env files with --redact — reordered keys and an added comment are reported as zero noise, only the three real changes shown, secret values masked as stable fingerprints" width="720">
 </p>
 
 ```console

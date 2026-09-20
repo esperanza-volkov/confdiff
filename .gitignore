@@ -10,4 +10,5 @@ LAUNCH.md
 scripts/*
 # ...but the MCP bundle build script must be tracked (CI prepare depends on it)
 !scripts/build-mcp.mjs
+!scripts/gen-demo-svg.py
 PLAN-archive.md
