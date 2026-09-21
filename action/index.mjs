@@ -8,9 +8,9 @@
 // and uses global fetch for the GitHub API.
 
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync, readFileSync, appendFileSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, readFileSync, appendFileSync, existsSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname, extname, basename } from "node:path";
+import { join, dirname, extname, basename, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -139,6 +139,7 @@ async function main() {
   const { files, warn } = changedFiles(base, pathspecs);
 
   const tmp = mkdtempSync(join(tmpdir(), "confdiff-"));
+  const workspace = realpathSync(env("GITHUB_WORKSPACE", process.cwd()));
   const sections = [];
   let anyDiff = false;
   let errors = 0;
@@ -146,6 +147,18 @@ async function main() {
   for (const f of files) {
     const show = trySh("git", ["show", `${base}:${f}`]);
     if (!show.ok) continue; // not present at base (added/renamed) — skip
+
+    // `f` is read straight off the working tree below, which follows symlinks.
+    // A tracked symlink retargeted (in the PR) to point outside the checkout
+    // would let its target's contents get read and posted in the PR comment.
+    let resolved;
+    try { resolved = realpathSync(f); } catch { resolved = null; }
+    if (resolved === null || (resolved !== workspace && !resolved.startsWith(workspace + sep))) {
+      errors++;
+      sections.push(`#### \`${f}\`\n\n> ⚠️ skipped: resolves outside the workspace (possible symlink escape)`);
+      continue;
+    }
+
     const oldPath = join(tmp, "old_" + basename(f));
     writeFileSync(oldPath, show.out);
     const { status, out } = runConfdiff(oldPath, f, stripped);
