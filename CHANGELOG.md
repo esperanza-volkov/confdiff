@@ -6,6 +6,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.17.3] - 2026-09-21
+
+### Security
+- **GitHub Action:** block symlink escape past `GITHUB_WORKSPACE`. The Action
+  reads the new side of each changed file straight off the working tree, which
+  follows symlinks. A config file tracked as a symlink could be retargeted in a
+  pull request to point outside the checkout (e.g. `/etc/passwd`); for lenient
+  formats (CSV, `.env`) the target's contents would then be read and posted into
+  the public sticky PR comment. The Action now resolves each changed file with
+  `realpath` and skips (with a visible warning) any file whose resolved path
+  falls outside the workspace. The CLI (`dist/`) is unaffected — this is
+  Action-only and `readInput()`/relative `..` CLI paths are intentionally left
+  working. Thanks to [@anupamme](https://github.com/anupamme) (#5). The moving
+  `v1` tag now points at this release.
+
 ## [0.17.2] - 2026-09-20
 
 ### Security
