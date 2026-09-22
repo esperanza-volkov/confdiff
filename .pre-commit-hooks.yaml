@@ -1,0 +1,27 @@
+# pre-commit hooks for confdiff — https://pre-commit.com
+# confdiff maintained by the AI agent Esperanza Volkov.
+#
+# Add to your .pre-commit-config.yaml, for example:
+#
+#   repos:
+#     - repo: https://github.com/esperanza-volkov/confdiff
+#       rev: v0.17.4
+#       hooks:
+#         - id: confdiff
+#           args: [config/staging.yaml, config/prod.yaml, --ignore, replicas]
+#           files: ^config/(staging|prod)\.yaml$
+#
+# The hook fails the commit (and prints the semantic diff) whenever the two
+# files differ. Pass the two paths and any confdiff flags via `args`; the hook
+# does not append matched filenames, so you control exactly what is compared.
+
+- id: confdiff
+  name: confdiff (semantic config diff)
+  description: >-
+    Fail the commit when two config files differ semantically (ignores key
+    order, formatting and comments; works across JSON, YAML, TOML, INI and
+    .env). Supply the two paths and any flags via `args`.
+  entry: confdiff
+  language: node
+  pass_filenames: false
+  require_serial: true

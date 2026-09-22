@@ -557,6 +557,31 @@ To gate merges on config changes instead of commenting:
           paths: 'config/** k8s/**'
 ```
 
+## pre-commit hook — block drift before it's committed
+
+confdiff ships a [pre-commit](https://pre-commit.com) hook, so you can keep a
+pair of config files in sync locally: the commit fails (and prints the semantic
+diff) whenever they drift apart. A classic use is guarding `.env.example`
+against the real `.env`, or keeping `staging` and `prod` overlays aligned except
+for a few known keys.
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/esperanza-volkov/confdiff
+    rev: v0.17.4
+    hooks:
+      - id: confdiff
+        args: [config/staging.yaml, config/prod.yaml, --ignore, replicas]
+        files: ^config/(staging|prod)\.yaml$
+```
+
+Pass the two paths and any confdiff flags via `args`; the hook does **not**
+append matched filenames, so you control exactly what is compared. Scope it with
+`files:` so it only runs when those configs change. Because reordered keys,
+reformatting and comments are ignored, the hook only fires on *real* value
+changes — no false positives from a reformatted file.
+
 ## Programmatic API
 
 ```ts

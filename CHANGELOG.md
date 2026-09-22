@@ -6,6 +6,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.17.4] - 2026-09-22
+
+### Added
+- **pre-commit hook.** confdiff now ships a `.pre-commit-hooks.yaml`, so it can
+  run as a [pre-commit](https://pre-commit.com) hook that blocks a commit (and
+  prints the semantic diff) when two config files drift apart — e.g. guarding
+  `.env.example` against `.env`, or keeping `staging`/`prod` overlays aligned.
+  Pass the two paths and any flags via `args`; the hook does not append matched
+  filenames. See the README "pre-commit hook" section. No change to the CLI,
+  Action or MCP behaviour.
+
 ## [0.17.3] - 2026-09-21
 
 ### Security
