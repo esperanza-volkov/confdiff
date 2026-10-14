@@ -1,6 +1,6 @@
 import pc from "picocolors";
 import { type Change, formatPath, segStr } from "./diff.js";
-import { redactToken, type RedactMatcher } from "./redact.js";
+import { redactNested, redactToken, type RedactMatcher } from "./redact.js";
 
 export interface RenderOptions {
   color?: boolean;
@@ -30,8 +30,9 @@ export function renderText(changes: Change[], opts: RenderOptions = {}): string 
   // both sides together so drift stays visible (differing fingerprints).
   const isMasked = (ch: Change): boolean =>
     !!redact && (redact(ch.path, ch.oldValue) || redact(ch.path, ch.newValue));
+  // Otherwise still mask secrets nested inside an added/removed/retyped object.
   const show = (ch: Change, v: unknown): string =>
-    isMasked(ch) ? redactToken(v) : preview(v);
+    isMasked(ch) ? redactToken(v) : preview(redact ? redactNested(v, ch.path, redact).value : v);
 
   if (changes.length === 0) {
     return c.dim("no semantic differences");
@@ -100,9 +101,12 @@ export function renderJson(changes: Change[], opts: { redact?: RedactMatcher } =
       changed: changes.length > 0,
       count: changes.length,
       changes: changes.map((ch) => {
-        const masked = !!(redact && (redact(ch.path, ch.oldValue) || redact(ch.path, ch.newValue)));
-        const old = masked ? redactToken(ch.oldValue) : ch.oldValue;
-        const nw = masked ? redactToken(ch.newValue) : ch.newValue;
+        const whole = !!(redact && (redact(ch.path, ch.oldValue) || redact(ch.path, ch.newValue)));
+        const oldN = redact && !whole ? redactNested(ch.oldValue, ch.path, redact) : undefined;
+        const newN = redact && !whole ? redactNested(ch.newValue, ch.path, redact) : undefined;
+        const old = whole ? redactToken(ch.oldValue) : oldN ? oldN.value : ch.oldValue;
+        const nw = whole ? redactToken(ch.newValue) : newN ? newN.value : ch.newValue;
+        const masked = whole || !!oldN?.masked || !!newN?.masked;
         return {
           path: ch.path,
           pointer: toJsonPointer(ch.path),

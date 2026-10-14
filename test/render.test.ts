@@ -170,3 +170,54 @@ test("--redact-entropy: leaves ordinary values visible", () => {
   assert.doesNotMatch(out, /«redacted/);
   assert.match(out, /example\.com/);
 });
+
+// --- redaction inside added / removed / retyped containers ---
+
+test("renderText/renderJson: --redact masks secrets nested in an added object", () => {
+  const d = diff({ app: 1 }, { app: 1, db: { password: "hunter2", user: "x" } });
+  const redact = makeRedactMatcher(true, []);
+  const out = renderText(d, { color: false, redact });
+  assert.doesNotMatch(out, /hunter2/);
+  assert.match(out, /\+ db\s+= \{"password":"«redacted:[0-9a-f]{6}»","user":"x"\}/);
+  const parsed = JSON.parse(renderJson(d, { redact }));
+  assert.doesNotMatch(JSON.stringify(parsed), /hunter2/);
+  assert.equal(parsed.changes[0].redacted, true);
+  assert.equal(parsed.changes[0].newValue.user, "x");
+  assert.match(parsed.changes[0].newValue.password, /^«redacted:[0-9a-f]{6}»$/);
+});
+
+test("--redact masks secrets nested in removed, retyped and array-element values", () => {
+  const redact = makeRedactMatcher(true, []);
+  const cases: Array<[unknown, unknown, Record<string, unknown>?]> = [
+    [{ db: { token: "s3cr3t" } }, {}], // removed subtree
+    [{ db: "x" }, { db: { password: "s3cr3t" } }], // container type change
+    [{ a: [] }, { a: [{ token: "s3cr3t" }] }], // indexed array element
+    [{ a: [] }, { a: [{ token: "s3cr3t" }] }, { arraySet: true }], // set array element
+    [{ a: [] }, { a: [{ id: 1, nested: { apiKey: "s3cr3t" } }] }, { arrayKey: ["id"] }], // keyed element, deep
+    [{ env: [] }, { env: [{ name: "DB_PASSWORD", value: "s3cr3t" }] }], // name/value pair inside an element
+  ];
+  for (const [a, b, o] of cases) {
+    const d = diff(a, b, o);
+    assert.ok(d.length > 0);
+    const text = renderText(d, { color: false, redact });
+    const json = renderJson(d, { redact });
+    assert.doesNotMatch(text, /s3cr3t/, `text leaked for ${JSON.stringify(b)}`);
+    assert.doesNotMatch(json, /s3cr3t/, `json leaked for ${JSON.stringify(b)}`);
+    assert.equal(JSON.parse(json).changes.some((c: { redacted?: boolean }) => c.redacted), true);
+  }
+});
+
+test("--redact: nested values that are not secrets stay visible", () => {
+  const d = diff({}, { db: { host: "h", port: 5, env: [{ name: "LOG_LEVEL", value: "debug" }] } });
+  const redact = makeRedactMatcher(true, []);
+  assert.doesNotMatch(renderText(d, { color: false, redact }), /redacted/);
+  const parsed = JSON.parse(renderJson(d, { redact }));
+  assert.equal(parsed.changes[0].redacted, undefined);
+  assert.deepEqual(parsed.changes[0].newValue, { host: "h", port: 5, env: [{ name: "LOG_LEVEL", value: "debug" }] });
+});
+
+test("--redact-key / --redact-entropy also apply inside an added object", () => {
+  const d = diff({}, { db: { pin: "1234", blob: "Zk9xQ2dWb3ZhN1pLdXlQcjhTbFdtUQ" } });
+  const out = renderText(d, { color: false, redact: makeRedactMatcher(true, ["db.pin"], true) });
+  assert.doesNotMatch(out, /1234|Zk9xQ2dW/);
+});

@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **`--redact` no longer prints secrets nested inside an added, removed or
+  retyped object or array.** When a whole subtree changed (`+ db =
+  {"password":"hunter2"}`, `- db = {...}`, `~ db (type) "x" => {...}`, a new
+  array element), only the change's own key was checked, so a password inside
+  the value was shown in plain text in the text output, `--json`, the MCP
+  `diff_configs`/`diff_config_files` result and the Action's PR comment. The
+  previewed value is now walked and every nested secret (built-in key names,
+  `--redact-key` globs, `--redact-entropy`, and `{name: <SECRET>, value}` pairs)
+  is replaced with its fingerprint; `--json` sets `"redacted": true` on such
+  changes. The Action bundle (`action/confdiff.cjs`) and playground are rebuilt.
+
 ## [0.17.4] - 2026-09-22
 
 ### Added

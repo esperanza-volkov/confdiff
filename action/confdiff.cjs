@@ -13189,6 +13189,37 @@ function makeRedactMatcher(builtins, globs, entropy = false) {
     return false;
   };
 }
+function redactNested(value, path, redact) {
+  const isPlain = (v) => {
+    if (v === null || typeof v !== "object") return false;
+    const proto = Object.getPrototypeOf(v);
+    return proto === Object.prototype || proto === null;
+  };
+  if (!Array.isArray(value) && !isPlain(value)) return { value, masked: false };
+  let masked = false;
+  const visit = (v, p) => {
+    if (!Array.isArray(v) && !isPlain(v)) return v;
+    if (Array.isArray(v)) return v.map((item, i) => maybe(item, [...p, i], false));
+    const obj = v;
+    const nameField = Object.keys(obj).find(
+      (k) => NAME_FIELDS.has(k.toLowerCase()) && typeof obj[k] === "string" && looksSecret(obj[k])
+    );
+    const out2 = {};
+    for (const [k, child] of Object.entries(obj)) {
+      out2[k] = maybe(child, [...p, k], nameField !== void 0 && VALUE_FIELDS.has(k.toLowerCase()));
+    }
+    return out2;
+  };
+  const maybe = (v, p, pairValue) => {
+    if (pairValue || redact(p, v)) {
+      masked = true;
+      return redactToken(v);
+    }
+    return visit(v, p);
+  };
+  const out = visit(value, path);
+  return { value: out, masked };
+}
 function cyrb53(str, seed = 2654435769) {
   let h1 = 3735928559 ^ seed;
   let h2 = 1103547991 ^ seed;
@@ -13225,7 +13256,7 @@ function renderText(changes, opts = {}) {
   const c = useColor ? import_picocolors.default : passthrough();
   const redact = opts.redact;
   const isMasked = (ch) => !!redact && (redact(ch.path, ch.oldValue) || redact(ch.path, ch.newValue));
-  const show = (ch, v) => isMasked(ch) ? redactToken(v) : preview(v);
+  const show = (ch, v) => isMasked(ch) ? redactToken(v) : preview(redact ? redactNested(v, ch.path, redact).value : v);
   if (changes.length === 0) {
     return c.dim("no semantic differences");
   }
@@ -13275,9 +13306,12 @@ function renderJson(changes, opts = {}) {
       changed: changes.length > 0,
       count: changes.length,
       changes: changes.map((ch) => {
-        const masked = !!(redact && (redact(ch.path, ch.oldValue) || redact(ch.path, ch.newValue)));
-        const old = masked ? redactToken(ch.oldValue) : ch.oldValue;
-        const nw = masked ? redactToken(ch.newValue) : ch.newValue;
+        const whole = !!(redact && (redact(ch.path, ch.oldValue) || redact(ch.path, ch.newValue)));
+        const oldN = redact && !whole ? redactNested(ch.oldValue, ch.path, redact) : void 0;
+        const newN = redact && !whole ? redactNested(ch.newValue, ch.path, redact) : void 0;
+        const old = whole ? redactToken(ch.oldValue) : oldN ? oldN.value : ch.oldValue;
+        const nw = whole ? redactToken(ch.newValue) : newN ? newN.value : ch.newValue;
+        const masked = whole || !!oldN?.masked || !!newN?.masked;
         return {
           path: ch.path,
           pointer: toJsonPointer(ch.path),

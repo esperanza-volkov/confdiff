@@ -61,6 +61,19 @@ test("mcp: diff_configs redact masks secret values", async () => {
   await client.close();
 });
 
+test("mcp: diff_configs redact masks secrets nested in an added object", async () => {
+  const client = await connectedClient();
+  const res = await client.callTool({
+    name: "diff_configs",
+    arguments: { a: '{"app":1}', b: '{"app":1,"db":{"password":"hunter2","user":"x"}}', redact: true },
+  });
+  const text = (res.content as { type: string; text: string }[])[0].text;
+  assert.ok(!text.includes("hunter2"), "plaintext secret must not leak in text");
+  assert.ok(!JSON.stringify(res.structuredContent).includes("hunter2"), "plaintext secret must not leak in structuredContent");
+  assert.ok(text.includes("redacted"), "should show a redacted fingerprint");
+  await client.close();
+});
+
 test("mcp: invalid input returns isError, not a crash", async () => {
   const client = await connectedClient();
   const res = await client.callTool({

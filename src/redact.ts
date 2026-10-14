@@ -164,6 +164,49 @@ export function makeRedactMatcher(builtins: boolean, globs: string[], entropy = 
 }
 
 /**
+ * Redact secrets INSIDE a container value. A change can carry a whole object or
+ * array when a subtree is added, removed or changes type (`+ db = {password:…}`),
+ * so checking only the change's own path would print every nested secret in the
+ * clear. Walk the value, ask `redact` about each nested path (so key-name, glob
+ * and entropy rules all apply at any depth), and also apply the name/value-pair
+ * idiom to array elements, which carry an index rather than a `[name=…]` segment.
+ * Returns a masked copy (the input is not mutated) and whether anything was masked.
+ */
+export function redactNested(value: unknown, path: Path, redact: RedactMatcher): { value: unknown; masked: boolean } {
+  // Only arrays and plain objects are walked; Dates (TOML/YAML timestamps) and
+  // other leaf objects are left as they are.
+  const isPlain = (v: unknown): v is Record<string, unknown> => {
+    if (v === null || typeof v !== "object") return false;
+    const proto = Object.getPrototypeOf(v);
+    return proto === Object.prototype || proto === null;
+  };
+  if (!Array.isArray(value) && !isPlain(value)) return { value, masked: false };
+  let masked = false;
+  const visit = (v: unknown, p: Path): unknown => {
+    if (!Array.isArray(v) && !isPlain(v)) return v;
+    if (Array.isArray(v)) return v.map((item, i) => maybe(item, [...p, i], false));
+    const obj = v;
+    const nameField = Object.keys(obj).find(
+      (k) => NAME_FIELDS.has(k.toLowerCase()) && typeof obj[k] === "string" && looksSecret(obj[k] as string),
+    );
+    const out: Record<string, unknown> = {};
+    for (const [k, child] of Object.entries(obj)) {
+      out[k] = maybe(child, [...p, k], nameField !== undefined && VALUE_FIELDS.has(k.toLowerCase()));
+    }
+    return out;
+  };
+  const maybe = (v: unknown, p: Path, pairValue: boolean): unknown => {
+    if (pairValue || redact(p, v)) {
+      masked = true;
+      return redactToken(v);
+    }
+    return visit(v, p);
+  };
+  const out = visit(value, path);
+  return { value: out, masked };
+}
+
+/**
  * cyrb53 — a fast, well-distributed 53-bit string hash. Pure JS with no
  * dependencies, so the CLI, the GitHub Action bundle and the browser playground
  * all compute the SAME fingerprint (node:crypto isn't available in the browser).
